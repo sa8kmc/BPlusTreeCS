@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 class BTree<T>
 {
+    public const int CHILD_CAPACITY = 16;
     ///内部節、葉、仮想節を総称した節のクラス
     abstract class Node
     {
@@ -17,6 +18,7 @@ class BTree<T>
         internal int nChildren;
         internal Node?[] children;
         internal long[] lowest; //各部分木の最小の要素
+        // internal int height;
         ///constructor: 空の内部節を生成する
         internal InternalNode()
         {
@@ -24,6 +26,7 @@ class BTree<T>
             nChildren = 0;
             children = new Node[CHILD_CAPACITY];
             lowest = new long[CHILD_CAPACITY];
+            // height = 2;
         }
         /**
          * キーkeyをもつデータは何番目の部分木に入るかを調べる
@@ -35,20 +38,32 @@ class BTree<T>
         {
             //seeks for the $i s.t. lowest[i]<=key<lowest[i+1].
             //最も左の部分木の最小要素より小さいときは、最も左の部分木に挿入。
-            if (key < lowest[0])
-                return 0;
-            //L:={j| lowest[j]<=key};
-            //0\in L.
-            int a = 0, b = nChildren; //Max(L)\in [0,nChildren).
-            while (b - a > 1)
+            if (CHILD_CAPACITY <= 16)
             {
-                var mid = (a + b) / 2;
-                if (lowest[mid] <= key) //mid\in L.
-                    a = mid;
-                else //mid\not\in L.
-                    b = mid;
+                for (int i = nChildren - 1; i >= 0; i--)
+                {
+                    if (lowest[i] <= key)
+                        return i;
+                }
+                return 0;
             }
-            return a;
+            else
+            {
+                if (key < lowest[0])
+                    return 0;
+                //L:={j| lowest[j]<=key};
+                //0\in L.
+                int a = 0, b = nChildren; //Max(L)\in [0,nChildren).
+                while (b - a > 1)
+                {
+                    var mid = (a + b) / 2;
+                    if (lowest[mid] <= key) //mid\in L.
+                        a = mid;
+                    else //mid\not\in L.
+                        b = mid;
+                }
+                return a;
+            }
         }
     }
     ///葉
@@ -72,7 +87,6 @@ class BTree<T>
 
     Node? root { get; set; }
     private static int serialNumber = 0;
-    public const int CHILD_CAPACITY = 5;
     private const int HALF_CHILD = (CHILD_CAPACITY + 1) / 2;
 
     private Leaf? currentLeaf { get; set; }
@@ -223,6 +237,7 @@ class BTree<T>
                 // 追加の余地がないので，節nodeを2つに分割しなければならない
                 // 新しい内部節newNodeを割り当てる
                 var newNode = new InternalNode();
+                // newNode.height = node.height;
                 // 節result.newNodeがどちらの節に挿入されるかで，場合分けする
                 if (pos < HALF_CHILD - 1)
                 {
@@ -293,6 +308,7 @@ class BTree<T>
             if (result.newNode != null)
             {
                 var newNode = new InternalNode();
+                // newNode.height = root == null ? 1 : root is Leaf ? 2 : ((InternalNode)root).height + 1;
                 newNode.nChildren = 2;
                 newNode.children[0] = root;
                 newNode.children[1] = result.newNode;
@@ -365,7 +381,7 @@ class BTree<T>
                 // bの要素を左へ詰め合わせる
                 Array.Copy(b.children, move, b.children, 0, bn - move);
                 Array.Clear(b.children, bn - move, move); // 不要な参照を消す
-                Array.Copy(b.lowest, move, b.lowest, 0, move);
+                Array.Copy(b.lowest, move, b.lowest, 0, bn - move);
             }
             // 子の個数を更新する
             a.nChildren = mid;
@@ -426,6 +442,16 @@ class BTree<T>
             int pos = node.LocateSubtree(key);
             // その部分木に対して，自分自身を再帰呼び出しする
             Deletion result = DeleteAux(node.children[pos]!, key);
+            if (result == Deletion.OK_REMOVED)
+            {
+                if (pos != node.nChildren - 1)
+                    node.lowest[pos] = node.lowest[pos + 1];
+                //else: node.lowest[pos]の値は、nChildrenの減少により意味を持つ範囲から外れる。
+            }
+            else if (node.children[pos] is InternalNode ic)
+            {
+                node.lowest[pos] = ic.lowest[0];
+            }
             // 部分木に何の変化もなければ，そのまま戻る
             if (result == Deletion.NOT_FOUND || result == Deletion.OK)
                 return result;
@@ -445,11 +471,8 @@ class BTree<T>
             if (result == Deletion.OK_REMOVED || joined)
             {
                 // nodeの部分木を詰め合わせる
-                for (int i = pos; i < node.nChildren - 1; i++)
-                {
-                    node.children[i] = node.children[i + 1];
-                    node.lowest[i] = node.lowest[i + 1];
-                }
+                Array.Copy(node.children, pos + 1, node.children, pos, node.nChildren - (pos + 1));
+                Array.Copy(node.lowest, pos + 1, node.lowest, pos, node.nChildren - (pos + 1));
                 node.children[node.nChildren - 1] = null; // 不要な参照を消す
                 // もし，nodeの部分木の数のHALF_CHILDより小さいなら再編成が必要である
                 if (--node.nChildren < HALF_CHILD)
@@ -525,6 +548,7 @@ class BTree<T>
                 s.Append($"[{n.lowest[i]}] #{n.children[i]!.serial} ");
             }
             s.Append("\n");
+            // s.Append($", height {n.height}\n");
             for (int i = 0; i < n.nChildren; i++)
             {
                 s.Append(toStringAux(n.children[i]!) + "\n");
