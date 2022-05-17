@@ -1,0 +1,56 @@
+\documentclass[dvipdfmx,10pt]{beamer}
+\usepackage{amsmath,amssymb}
+\usepackage{bbm}
+\usepackage{graphicx}
+\usepackage{url}
+% \usepackage{amsthm}
+\newcommand{\bo}[1]{{\boldsymbol #1}}
+\newcommand{\dx}{\,{\rm d}}
+\newcommand{\difall}[2]{\frac{{\rm d}{#1}}{{\rm d}{#2}}}
+\newcommand{\parpar}[2]{\frac{\partial{#1}}{\partial{#2}}}
+\newcommand{\pmat}[1]{{\begin{pmatrix}#1\end{pmatrix}}}
+\renewcommand{\div}{\mathop{\rm div}\nolimits}
+\usetheme{Copenhagen}
+\title{平衡探索木の入替え操作における\\B+木の高速性}
+\author{sa8}
+\begin{document}
+\maketitle
+% TODO: Pietのroll操作について言及
+% TODO: 2分木で発生するキャッシュミスの恐れ
+\section{平衡探索木とは?}
+\begin{frame}
+    \frametitle{2分探索木}
+    \begin{block}{2分木\cite[\S 6.3]{kondo:1998}}
+        \begin{enumerate}
+            \item 空の木は二分木である。
+            \item 次のいずれかを満足する節のみからなる木は、二分木である：
+                  \begin{itemize}
+                      \item 子をもたない
+                      \item 左の子のみをもつ
+                      \item 右の子のみをもつ
+                      \item 左右2つの子をもつ
+                  \end{itemize}
+        \end{enumerate}
+    \end{block}
+    各節の左の子を根とする部分木を{\bf 左部分木}と呼ぶ。{\bf 右部分木}も同様。
+    \begin{block}{2分探索木\cite[\S 9]{kondo:1998}}
+        各節に持たせたデータが次の関係を満たす二分木：
+
+        任意の節$\tt x$について、左部分木の要素は節$\tt x$よりも小さく、
+        右部分木に含まれる要素は節$\tt x$よりも大きい。
+    \end{block}
+\end{frame}
+\begin{frame}
+    % TODO: リスト構造と同型になった2分木の図。
+    \frametitle{平衡2分探索木}
+    \begin{block}{平衡2分探索木}
+        木の高さの偏りを抑える構造を持つ2分探索木。
+    \end{block}
+    \begin{exampleblock}{例}
+        AVL木、Splay木、赤黒木
+    \end{exampleblock}
+
+\end{frame}
+\bibliographystyle{jplain}
+\bibliography{biblio}
+\end{document}
