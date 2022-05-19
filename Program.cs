@@ -8,13 +8,13 @@ using System.Runtime.InteropServices;
 using System.Diagnostics;
 using MathNet.Numerics.Statistics;
 
-var N = 3000000;
+var N = 100000;
 var testTimes = 50;
 System.Console.WriteLine($"{N} random elements, Rank {BTree<int>.CHILD_CAPACITY} tree, #test: {testTimes}");
 double[] timesInsertion = new double[testTimes], timesDeletion = new double[testTimes];
 for (int k = 0; k < testTimes; k++)
 {
-    Console.Write($"case {k}");
+    // Console.Write($"case {k}");
     var X = new BTree<int>();
     var S = Enumerable.Range(0, N).OrderBy(i => Guid.NewGuid()).ToList();
     var sw = new Stopwatch();
@@ -33,7 +33,7 @@ for (int k = 0; k < testTimes; k++)
     }
     sw.Stop();
     timesDeletion[k] = sw.ElapsedMilliseconds;
-    Console.Write("\x1b[2K\r");
+    // Console.Write("\x1b[2K\r");
 }
 System.Console.WriteLine($"Insertion:{timesInsertion.Average(),10:f3}"
     + $"±{timesInsertion.PopulationStandardDeviation(),8:f3}ms");
