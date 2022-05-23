@@ -1,4 +1,8 @@
-﻿using System;
+﻿#if BenchmarkMode
+var N = 100000;
+Program.Benchmark(N);
+#endif
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -6,36 +10,20 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
-using MathNet.Numerics.Statistics;
 
-var N = 100000;
-var testTimes = 50;
-System.Console.WriteLine($"{N} random elements, Rank {BTree<int>.CHILD_CAPACITY} tree, #test: {testTimes}");
-double[] timesInsertion = new double[testTimes], timesDeletion = new double[testTimes];
-for (int k = 0; k < testTimes; k++)
+
+var X = new BTree<int>();
+var keys = Enumerable.Range(0, 300000).OrderBy(s => Guid.NewGuid());
+var tmp = 0;
+foreach (var key in keys)
 {
-    // Console.Write($"case {k}");
-    var X = new BTree<int>();
-    var S = Enumerable.Range(0, N).OrderBy(i => Guid.NewGuid()).ToList();
-    var sw = new Stopwatch();
-    sw.Start();
-    foreach (var s in S)
-    {
-        X.Insert(s, -s);
-    }
-    sw.Stop();
-    timesInsertion[k] = sw.ElapsedMilliseconds;
-    S = S.OrderBy(i => Guid.NewGuid()).ToList();
-    sw.Restart();
-    foreach (var s in S)
-    {
-        X.Delete(s);
-    }
-    sw.Stop();
-    timesDeletion[k] = sw.ElapsedMilliseconds;
-    // Console.Write("\x1b[2K\r");
+    X.Insert(key, -key);
+    if (X.size - tmp != 1) throw new SystemException("Error in Count");
+    tmp = X.size;
 }
-System.Console.WriteLine($"Insertion:{timesInsertion.Average(),10:f3}"
-    + $"±{timesInsertion.PopulationStandardDeviation(),8:f3}ms");
-System.Console.WriteLine($"Deletion :{timesDeletion.Average(),10:f3}"
-    + $"±{timesDeletion.PopulationStandardDeviation(),8:f3}ms");
+foreach (var key in keys)
+{
+    X.Delete(key);
+    if (X.size - tmp != -1) throw new SystemException("Error in Count");
+    tmp = X.size;
+}

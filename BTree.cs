@@ -4,7 +4,9 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Runtime.InteropServices;
 //TODO: setとしてのB+木から、vectorとしてのB+木を作る。
+//TODO: Countを実装。
 /*
  * 参考： 近藤嘉雪. 『定本Javaプログラマのためのアルゴリズムとデータ構造』. ソフトバンククリエイティブ, 2011.
  */
@@ -17,11 +19,12 @@ class BTree<T>
     /// <summary>
     /// B+木の階数。
     /// </summary>
-    public static readonly int CHILD_CAPACITY = 128;
+    public static readonly int CHILD_CAPACITY = 5;
     ///内部節、葉、仮想節を総称した節のクラス
     abstract class Node
     {
         internal int serial;
+        internal abstract int size { get; }
     }
     ///内部節
     class InternalNode : Node
@@ -30,6 +33,7 @@ class BTree<T>
         internal Node?[] children;
         internal long[] lowest; //各部分木の最小の要素
         internal int height;
+        internal int[] count; //Count[i]=0..(i+1)番目の部分木が持つ葉の数の合計
         ///constructor: 空の内部節を生成する
         internal InternalNode()
         {
@@ -37,8 +41,10 @@ class BTree<T>
             nChildren = 0;
             children = new Node[CHILD_CAPACITY];
             lowest = new long[CHILD_CAPACITY];
+            count = new int[CHILD_CAPACITY];
             height = 2;
         }
+        internal override int size { get => count[nChildren - 1]; }
         /// <summary>
         /// キーkeyをもつデータは何番目の部分木に入るかを調べる。
         /// </summary>
@@ -83,6 +89,7 @@ class BTree<T>
     {
         internal long key;
         internal T data;
+        internal override int size { get => 1; }
         /// <summary>
         /// コンスラクタ：葉を生成する
         /// </summary>
@@ -118,14 +125,23 @@ class BTree<T>
             else return (root as InternalNode)!.height;
         }
     }
+    public int size { get => root?.size ?? 0; }
+
+    private static void UpdateSizeNaive(InternalNode I, int from)
+    {
+        if (from == 0) I.count[from] = I.children[0]!.size;
+        for (int i = Math.Max(from, 1); i < I.nChildren; i++)
+            I.count[i] = I.count[i - 1] + I.children[i]!.size;
+    }
+
     /// <summary>
-    /// B木からキーkeyを探索する。キーkeyをもつ葉が見つかれば，それをcurrentLeafフィールドにセットする。
+    /// B木からキーkeyを探索する。キーkeyをもつ葉が見つかれば、それをcurrentLeafフィールドにセットする。
     /// このメソッドは探索の成否を示す情報だけを返す。
-    /// 実際にキーkeyに対応する値を得るには，searchに成功した後でgetDataメソッドを呼び出すこと。
-    /// また，setDataメソッドを呼び出せば，キーkeyに対応する値を変えることができる。
+    /// 実際にキーkeyに対応する値を得るには、searchに成功した後でgetDataメソッドを呼び出すこと。
+    /// また、setDataメソッドを呼び出せば、キーkeyに対応する値を変えることができる。
     /// </summary>
     /// <param name="key">探索すべきキー</param>
-    /// <returns>キーkeyをもつ葉が見つかればtrue，見つからなければfalseを返す。</returns>
+    /// <returns>キーkeyをもつ葉が見つかればtrue、見つからなければfalseを返す。</returns>
     public bool Search(long key)
     {
         currentLeaf = null;
@@ -145,7 +161,7 @@ class BTree<T>
     /// 最後に成功したsearchメソッドが見つけた要素のデータを得る。
     /// </summary>
     /// <returns>直前にsearchされた要素のデータ（dataフィールド）。
-    /// 直前にsearch以外（insert，delete）が実行されていた場合，および直前のsearchが失敗した場合には，nullを返す。</returns>
+    /// 直前にsearch以外（insert、delete）が実行されていた場合、および直前のsearchが失敗した場合には、nullを返す。</returns>
     public T? GetData()
     {
         if (currentLeaf == null) return default(T);
@@ -155,8 +171,8 @@ class BTree<T>
     /// 最後に成功したsearchメソッドが見つけた要素がもつデータをセットする。
     /// </summary>
     /// <param name="data">セットすべき値</param>
-    /// <returns>セットに成功したらtrue，
-    /// 直前にsearch以外（insert，delete）が実行されていた場合，および直前のsearchが失敗した場合にはfalseを返す。</returns>
+    /// <returns>セットに成功したらtrue、
+    /// 直前にsearch以外（insert、delete）が実行されていた場合、および直前のsearchが失敗した場合にはfalseを返す。</returns>
     public bool SetData(T data)
     {
         if (currentLeaf == null)
@@ -172,12 +188,12 @@ class BTree<T>
     /// <summary>
     /// InsertAuxメソッドの結果。
     /// </summary>
-    /// <param name="newNode">新しい節を作った場合に，その節が入る。</param>
-    /// <param name="lowest">新しい節を作った場合に，newNodeが指す部分木の最小キーが入る。</param>
+    /// <param name="newNode">新しい節を作った場合に、その節が入る。</param>
+    /// <param name="lowest">新しい節を作った場合に、newNodeが指す部分木の最小キーが入る。</param>
     private record class InsertAuxResult(Node? newNode, long lowest);
 
     /// <summary>
-    /// 指定した節に対して，キーkeyをもつ要素を挿入する（insertの下請け）。
+    /// 指定した節に対して、キーkeyをもつ要素を挿入する（insertの下請け）。
     /// </summary>
     /// <param name="pnode">内部節pnodeのnth番目の子に対して挿入を行う。pnodeがnullの場合は根が対象となる。</param>
     /// <param name="nth">内部節pnodeのnth番目の子に対して挿入を行う。</param>
@@ -193,78 +209,82 @@ class BTree<T>
         var thisNode = pnode == null ? root : pnode.children[nth];
         if (thisNode is Leaf leaf) // thisNodeは葉であるか?
         {
-            // すでに登録済みであれば，何もしないでnullを返す
+            // すでに登録済みであれば、何もしないでnullを返す
             if (leaf.key == key) return null;
             // 新たに葉newLeafを割り当てる
             var newLeaf = new Leaf(key, data);
-            // もし，割り当てた葉newLeafのほうが葉leafよりも小さいなら，
+            // もし、割り当てた葉newLeafのほうが葉leafよりも小さいなら、
             // newLeafとleafの位置を入れ換える
             if (key < leaf.key)
             {
-                // 元の節には，新しく割り当てた葉newLeafを入れる
+                // 元の節には、新しく割り当てた葉newLeafを入れる
                 if (pnode == null)
                     root = newLeaf;
                 else
                 {
                     pnode.children[nth] = newLeaf;
-                    // 改変。nth==0のとき、newLeafとleafの交換により、すぐ上の節による調整が効かないので、ここで反映。
+                    // 改変。nth==0のとき、newLeafとleafの交換により、自身の親による調整が効かないので、ここで反映。
                     if (nth == 0)
                         pnode.lowest[0] = Math.Min(key, pnode.lowest[0]);
                 }
-                // 新たに割り当てた葉として，leafを報告する (特異点の発生)
+                // 新たに割り当てた葉として、leafを報告する (特異点の発生)
                 return new(leaf, leaf.key);
             }
             else
             {
-                // 新たに割り当てた葉として，newLeafを報告する (特異点の発生)
+                // 新たに割り当てた葉として、newLeafを報告する (特異点の発生)
                 return new(newLeaf, key);
             }
         }
         else
         {
             // この節は内部節である
-            // これ以降，この節を内部節nodeとして参照する
+            // これ以降、この節を内部節nodeとして参照する
             var node = (InternalNode)thisNode!;
             // 何番目の部分木に挿入するかを決める
             int pos = node.LocateSubtree(key);
-            // 部分木に対して，自分自身を再帰呼び出しする
+            // 部分木に対して、自分自身を再帰呼び出しする
             var result = InsertAux(node, pos, key, data);
             // 改変。部分木nodeのlowest[0]の更新をpnodeに反映。
             if (pnode != null && pos == 0)
+            {
                 pnode.lowest[nth] = node.lowest[0];
-            // もし分割が行われていなければ，そのまま戻る
+            }
+            // もし分割が行われていなければ、そのまま戻る
             if (result == null || result.newNode == null)
+            {
+                //TODO: データ依存の解消
+                UpdateSizeNaive(node, pos);
                 return result;
-            // 分割が行われていたので，節nodeにそれ（result.newNode）を挿入する
+            }
+            // 分割が行われていたので、節nodeにそれ（result.newNode）を挿入する
             // 節nodeに追加の余地があるか？
             if (node.nChildren < CHILD_CAPACITY)
             {
                 //改変。Array.Copyにより一斉にコピー。
-                Array.Copy(node.children, pos + 1, node.children, pos + 2, (node.nChildren - 1) - (pos + 1) + 1);
-                Array.Copy(node.lowest, pos + 1, node.lowest, pos + 2, (node.nChildren - 1) - (pos + 1) + 1);
+                Array.Copy(node.children, pos + 1, node.children, pos + 2, node.nChildren - (pos + 1));
+                Array.Copy(node.lowest, pos + 1, node.lowest, pos + 2, node.nChildren - (pos + 1));
                 node.children[pos + 1] = result.newNode;
                 node.lowest[pos + 1] = result.lowest;
                 node.nChildren++;
+                //TODO: データ依存の解消
+                UpdateSizeNaive(node, pos);
                 return new(null, -1);
             }
             else
             {
-                // 追加の余地がないので，節nodeを2つに分割しなければならない
+                // 追加の余地がないので、節nodeを2つに分割しなければならない
                 // 新しい内部節newNodeを割り当てる
                 var newNode = new InternalNode();
                 newNode.height = node.height;
-                // 節result.newNodeがどちらの節に挿入されるかで，場合分けする
+                // 節result.newNodeがどちらの節に挿入されるかで、場合分けする
                 if (pos < HALF_CHILD - 1)
                 {
-                    // 節result.newNodeは，節nodeの側に挿入される
-                    // まず，HALF_CHILD-1～MAX_CHILD-1番目の部分木を，
-                    // 節nodeから節newNodeへと移す
-                    Array.Copy(node.children, HALF_CHILD - 1, newNode.children, 0,
-                        (CHILD_CAPACITY - 1) - (HALF_CHILD - 1) + 1);
-                    Array.Copy(node.lowest, HALF_CHILD - 1, newNode.lowest, 0,
-                        (CHILD_CAPACITY - 1) - (HALF_CHILD - 1) + 1);
-                    // 0～HALF_CHILD-2番目の部分木の間の適切な位置に，
-                    // 節result.newNodeを挿入する
+                    // 節result.newNodeは、節nodeの側に挿入される
+                    // まず、HALF_CHILD-1～MAX_CHILD-1番目の部分木を、節nodeから節newNodeへと移す
+                    Array.Copy(node.children, HALF_CHILD - 1, newNode.children, 0, (CHILD_CAPACITY - 1) - (HALF_CHILD - 1) + 1);
+                    Array.Copy(node.lowest, HALF_CHILD - 1, newNode.lowest, 0, (CHILD_CAPACITY - 1) - (HALF_CHILD - 1) + 1);
+                    // 0～HALF_CHILD-2番目の部分木の間の適切な位置に、節result.newNodeを挿入する
                     Array.Copy(node.children, pos + 1, node.children, pos + 2, (HALF_CHILD - 2) - (pos + 1) + 1);
                     Array.Copy(node.lowest, pos + 1, node.lowest, pos + 2, (HALF_CHILD - 2) - (pos + 1) + 1);
                     node.children[pos + 1] = result.newNode;
@@ -272,8 +292,8 @@ class BTree<T>
                 }
                 else
                 {
-                    // 節result.newNodeは節newNodeの側に挿入されるHALF_CHILD～MAX_CHILD-1番目の部分木を，
-                    // 節newNodeに移動する。同時に，節result.newNodeを適切な位置に挿入する。
+                    // 節result.newNodeは節newNodeの側に挿入される
+                    // HALF_CHILD～MAX_CHILD-1番目の部分木を、節newNodeに移動する。同時に、節result.newNodeを適切な位置に挿入する。
 
                     //HALF_CHILD~pos
                     Array.Copy(node.children, HALF_CHILD, newNode.children, 0, pos - HALF_CHILD + 1);
@@ -288,8 +308,12 @@ class BTree<T>
                 // 子の数nChildを更新する
                 node.nChildren = HALF_CHILD;
                 newNode.nChildren = (CHILD_CAPACITY + 1) - HALF_CHILD;
+                // 分割してないですよね？
+                //TODO:データ依存の解消
+                UpdateSizeNaive(node, pos);
+                UpdateSizeNaive(newNode, 0);
 
-                // 分割して作られた節をフィールドnewNodeに，
+                // 分割して作られた節をフィールドnewNodeに、
                 // またその最小値をlowestフィールドに返す
                 return new(newNode, newNode.lowest[0]);
             }
@@ -301,7 +325,7 @@ class BTree<T>
     /// </summary>
     /// <param name="key">挿入する要素のキー</param>
     /// <param name="data">挿入する要素のデータ</param>
-    /// <returns>要素の挿入に成功したらtrue，すでにキーkeyをもつ要素が登録されていたら，何もしないでfalseを返す。</returns>
+    /// <returns>要素の挿入に成功したらtrue、すでにキーkeyをもつ要素が登録されていたら、何もしないでfalseを返す。</returns>
     public bool Insert(long key, T data)
     {
         currentLeaf = null;
@@ -312,13 +336,13 @@ class BTree<T>
         }
         else
         {
-            // 木が空でない場合には，insertAuxメソッドを呼び出して，要素の挿入を行う
+            // 木が空でない場合には、insertAuxメソッドを呼び出して、要素の挿入を行う
             var result = InsertAux(null, -1, key, data);
-            // もし結果がnullなら，すでにキーkeyは登録されているので，そのままfalseを返す
+            // もし結果がnullなら、すでにキーkeyは登録されているので、そのままfalseを返す
             if (result == null)
                 return false;
 
-            // もし分割が行われたなら，木の高さを1段高くする
+            // もし分割が行われたなら、木の高さを1段高くする
             if (result.newNode != null)
             {
                 var newNode = new InternalNode();
@@ -328,10 +352,17 @@ class BTree<T>
                 newNode.children[1] = result.newNode;
                 switch (root)
                 {
-                    case Leaf l: newNode.lowest[0] = l.key; break;
-                    case InternalNode i: newNode.lowest[0] = i.lowest[0]; break;
+                    case Leaf l:
+                        newNode.lowest[0] = l.key;
+                        newNode.count[0] = 1;
+                        break;
+                    case InternalNode i:
+                        newNode.lowest[0] = i.lowest[0];
+                        newNode.count[0] = i.size;
+                        break;
                 }
                 newNode.lowest[1] = result.lowest;
+                newNode.count[1] = newNode.count[0] + result.newNode.size;
                 root = newNode;
             }
             return true;
@@ -342,11 +373,11 @@ class BTree<T>
     #region Deletion
     /// <summary>
     /// 内部節pのx番目とx+1番目の部分木を再編成する。
-    /// もし，併合が必要なら，すべての要素をx番目の部分木に集めてtrueを返す。併合が不要ならfalseを返す。
+    /// もし、併合が必要なら、すべての要素をx番目の部分木に集めてtrueを返す。併合が不要ならfalseを返す。
     /// </summary>
     /// <param name="p">内部節p</param>
     /// <param name="x">内部節pのx番目とx+1番目の部分木を再編成する。</param>
-    /// <returns>併合が必要ならtrue，必要でなければfalse。</returns>
+    /// <returns>併合が必要ならtrue、必要でなければfalse。</returns>
     private static bool MergeNodes(InternalNode p, int x)
     {
         var a = (InternalNode)p.children[x]!;
@@ -362,39 +393,65 @@ class BTree<T>
             Array.Copy(b.children, 0, a.children, an, bn);
             Array.Clear(b.children, 0, bn); // 不要な参照を消す
             Array.Copy(b.lowest, 0, a.lowest, an, bn);
+            Array.Copy(b.count, 0, a.count, an, bn);
+            // now, a.Count=={a[0..1],...,a[0..an], a[an..an+1],...,a[an..an+bn]}
+            var ac = a.count[a.nChildren - 1]; //a[0...an-1]@=a[0..an]
             a.nChildren += bn; // 子の数を更新する
             // ### ここでbを解放する ###
+            for (int i = an; i < an + bn; i++)
+                a.count[i] += ac;
             return true; // 併合したことを通知する
         }
         else
         {
-            // 部分木aとbとで，節を再分配する
+            // 部分木aとbとで、節を再分配する
             int move; // 移動する要素の個数
             // 部分木aに分配すべき子の数を求める
             int mid = (an + bn) / 2;
             if (an > mid)
             {
                 // 部分木aから部分木bへと移動する
+                //a[does not move], a[move to b], b[shifting higher]
                 move = an - mid; // move個の子をaからbへ移す
+                var former = a.count[mid - 1];//a[0..mid]
+                var latter = a.count[an - 1] - former;//a[mid..an]\equiv a[..an]-a[..mid]
                 // bの要素を右にずらす
                 Array.Copy(b.children, 0, b.children, move, bn);
                 Array.Copy(b.lowest, 0, b.lowest, move, bn);
+                Array.Copy(b.count, 0, b.count, move, bn);
                 // aからbへmove個の子を移動する
                 Array.Copy(a.children, mid, b.children, 0, move);
                 Array.Clear(a.children, mid, move); // 不要な参照を消す
                 Array.Copy(a.lowest, mid, b.lowest, 0, move);
+                Array.Copy(a.count, mid, b.count, 0, move);
+                //b[0..move]\equiv a^{former}[mid..an]
+                //now, b.Count=={a[0..mid]+b[0..1],...,a[0..mid]+b[0..move], b[move..move+1],..., b[move..move+bn]}
+                for (int i = 0; i < move; i++)
+                    b.count[i] -= former;
+                for (int i = move; i < move + bn; i++)
+                    b.count[i] += latter;
             }
             else
             {
                 // 部分木bから部分木aへと移動する
+                //a[does not move], b[move to a], b[shifting lower]
                 move = mid - an; // move個の子をbからaへ移す
                 // bからaへmove個の子を移動する
+                var ac = a.count[an - 1]; //a[0..an]
+                var former = b.count[move - 1]; //b[0..move]
                 Array.Copy(b.children, 0, a.children, an, move);
                 Array.Copy(b.lowest, 0, a.lowest, an, move);
+                Array.Copy(b.count, 0, a.count, an, move);
                 // bの要素を左へ詰め合わせる
                 Array.Copy(b.children, move, b.children, 0, bn - move);
                 Array.Clear(b.children, bn - move, move); // 不要な参照を消す
                 Array.Copy(b.lowest, move, b.lowest, 0, bn - move);
+                Array.Copy(b.count, move, b.count, 0, bn - move);
+                // now, a.Count=={a[0..1],...,a[0..an],a[an..an+1],...,a[an,...,an+move]}, b.Count=={a[an..an+move]+b[0..1],...,a[an..an+move]+b[0..bn-move]}
+                for (int i = an; i < an + move; i++)
+                    a.count[i] += ac;
+                for (int i = 0; i < bn - move; i++)
+                    b.count[i] -= former;
             }
             // 子の個数を更新する
             a.nChildren = mid;
@@ -406,7 +463,7 @@ class BTree<T>
     }
 
     // deleteAuxメソッドの戻り値
-    // 値の意味は，deleteAuxメソッドのコメントを参照のこと。
+    // 値の意味は、deleteAuxメソッドのコメントを参照のこと。
     private enum DeleteAuxResult
     {
         OK,
@@ -416,14 +473,14 @@ class BTree<T>
     }
 
     /// <summary>
-    /// 節thisNodeから，キーkeyをもつ要素を削除する（deleteの下請け）。
+    /// 節thisNodeから、キーkeyをもつ要素を削除する（deleteの下請け）。
     /// </summary>
     /// <param name="thisNode">この節（またはその部分木）から要素を削除する。</param>
     /// <param name="key">削除する要素のキー</param>
     /// <returns>以下の値を返す。
     /// ‣OK: 削除に成功。thisNodeには何の変化もない
     /// ‣OK_REMOVED: 削除に成功。thisNodeそのものが削除された
-    /// ‣OK_NEED_REORG:削除に成功。thisNodeの子が少なく（HALF_CHILD以下）なったので，再編成が必要になった
+    /// ‣OK_NEED_REORG:削除に成功。thisNodeの子が少なく（HALF_CHILD以下）なったので、再編成が必要になった
     /// ‣NOT_FOUND: 削除に失敗。キーkeyをもつ子は見つからなかった
     /// </returns>
     private static DeleteAuxResult DeleteAux(Node thisNode, long key)
@@ -432,7 +489,7 @@ class BTree<T>
         {
             // この節は葉である
 
-            // この葉のキーとkeyが等しければ，削除する
+            // この葉のキーとkeyが等しければ、削除する
             if (leaf.key == key)
             {
                 // ### ここでleafを解放する ###
@@ -440,35 +497,41 @@ class BTree<T>
             }
             else
             {
-                // キーが一致しない。つまり，与えられたキーをもつ要素は存在しなかった
+                // キーが一致しない。つまり、与えられたキーをもつ要素は存在しなかった
                 return DeleteAuxResult.NOT_FOUND;
             }
         }
         else
         {
             // この節は内部節である
-            // これ以降，この節を内部節nodeとして参照する
+            // これ以降、この節を内部節nodeとして参照する
             var node = (InternalNode)thisNode;
-            bool joined = false;// 再編成の結果，部分木が併合されたか？
+            bool joined = false;// 再編成の結果、部分木が併合されたか？
 
             // どの部分木から削除するかを決める
             int pos = node.LocateSubtree(key);
-            // その部分木に対して，自分自身を再帰呼び出しする
+            // その部分木に対して、自分自身を再帰呼び出しする
             DeleteAuxResult result = DeleteAux(node.children[pos]!, key);
+            //この時点で、自身の子まで統合は済んでいる。
+            // 改変。子のCountの更新を自身に反映。
             // 改変。子のlowestの更新を自身に反映。
             if (result == DeleteAuxResult.OK_REMOVED)
             {
                 if (pos != node.nChildren - 1)
                     node.lowest[pos] = node.lowest[pos + 1];
-                //else: node.lowest[pos]の値は、nChildrenの減少により意味を持つ範囲から外れる。
+                //else => node.lowest[pos]の値は、nChildrenの減少により意味を持つ範囲から外れる。
             }
             else if (node.children[pos] is InternalNode ic)
             {
                 node.lowest[pos] = ic.lowest[0];
             }
-            // 部分木に何の変化もなければ，そのまま戻る
+            // 部分木に何の変化もなければ、そのまま戻る
             if (result == DeleteAuxResult.NOT_FOUND || result == DeleteAuxResult.OK)
+            {
+                //TODO:データ依存の解消
+                UpdateSizeNaive(node, pos);
                 return result;
+            }
 
             // 部分木posを再編成する必要があるか？
             if (result == DeleteAuxResult.OK_NEED_REORG)
@@ -476,10 +539,9 @@ class BTree<T>
                 int sub = (pos == 0) ? 0 : pos - 1;
                 // 部分木subとsub+1を再編成する
                 joined = MergeNodes(node, sub);
-                // もし，subとsub+1が併合されていたら，部分木sub+1をnodeから削除する必要がある
+                // もし、subとsub+1が併合されていたら、部分木sub+1をnodeから削除する必要がある
                 if (joined) pos = sub + 1;
             }
-
             var myResult = DeleteAuxResult.OK; // このメソッドが返す戻り値。とりあえずOKにしておく
             // 部分木posが削除された
             if (result == DeleteAuxResult.OK_REMOVED || joined)
@@ -488,12 +550,14 @@ class BTree<T>
                 Array.Copy(node.children, pos + 1, node.children, pos, node.nChildren - (pos + 1));
                 Array.Copy(node.lowest, pos + 1, node.lowest, pos, node.nChildren - (pos + 1));
                 node.children[node.nChildren - 1] = null; // 不要な参照を消す
-                // もし，nodeの部分木の数のHALF_CHILDより小さいなら再編成が必要である
+                // もし、nodeの部分木の数のHALF_CHILDより小さいなら再編成が必要である
                 if (--node.nChildren < HALF_CHILD)
                 {
                     myResult = DeleteAuxResult.OK_NEED_REORG;
                 }
             }
+            //TODO:データ依存の解消
+            UpdateSizeNaive(node, 0);
             return myResult;
         }
     }
@@ -501,7 +565,7 @@ class BTree<T>
     /// B木から要素を削除する。
     /// </summary>
     /// <param name="key">削除する要素のキー</param>
-    /// <returns>削除に成功すればtrue，要素が存在しなければfalseを返す。</returns>
+    /// <returns>削除に成功すればtrue、要素が存在しなければfalseを返す。</returns>
     public bool Delete(long key)
     {
         currentLeaf = null;
@@ -510,20 +574,20 @@ class BTree<T>
             return false;
         else // 木が空でない場合
         {
-            // deleteAuxメソッドを呼び出して，キーkeyをもつ要素を削除する
+            // deleteAuxメソッドを呼び出して、キーkeyをもつ要素を削除する
             var result = DeleteAux(root, key);
 
             switch (result)
             {
-                case DeleteAuxResult.NOT_FOUND:    // 見つからなければ，falseを返す
+                case DeleteAuxResult.NOT_FOUND:    // 見つからなければ、falseを返す
                     return false;
-                case DeleteAuxResult.OK_REMOVED:   // 根が削除されたので，rootにnullを代入する（木が空になる）
+                case DeleteAuxResult.OK_REMOVED:   // 根が削除されたので、rootにnullを代入する（木が空になる）
                     root = null;
                     break;
                 case DeleteAuxResult.OK_NEED_REORG:
                     if (((InternalNode)root).nChildren == 1)
                     {
-                        // 根が再編成された結果，根の子が1個だけになったら，
+                        // 根が再編成された結果、根の子が1個だけになったら、
                         // 木の高さを1つ減らす
                         // ### Node p = root; ###
                         root = ((InternalNode)root).children[0];
