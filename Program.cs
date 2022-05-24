@@ -13,7 +13,7 @@ using System.Diagnostics;
 
 
 var X = new BTree<int>();
-var keys = Enumerable.Range(0, 300000).OrderBy(s => Guid.NewGuid());
+var keys = Enumerable.Range(0, 256).OrderBy(s => Guid.NewGuid());
 var tmp = 0;
 foreach (var key in keys)
 {

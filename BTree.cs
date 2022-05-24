@@ -5,11 +5,16 @@ using System.Numerics;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Runtime.InteropServices;
-//TODO: setとしてのB+木から、vectorとしてのB+木を作る。
-//TODO: Countを実装。
+//TODO: 全体：setとしてのB+木から、vectorとしてのB+木を作る。
+//TODO: ①InsertAt, DeleteAtを実装。
+//TODO: ②2つのB木をMerge/Splitする機能を実装。
 /*
  * 参考： 近藤嘉雪. 『定本Javaプログラマのためのアルゴリズムとデータ構造』. ソフトバンククリエイティブ, 2011.
  */
+//Notation:
+//a[i..j]={a[i],...,a[j-1]}
+//a[i...j]={a[i],...,a[j]}
+//a[i:j]={a[i],...,a[i+j-1]}
 /// <summary>
 /// long型の昇順に並べたB+木。
 /// </summary>
@@ -81,6 +86,20 @@ class BTree<T>
                 return a;
             }
         }
+        internal int GetC0(int i) => i == 0 ? count[0] : count[i] - count[i - 1];
+        /// <summary>
+        /// X.Take(N).Select((s,i)=>i==at?UnderlineLiteral+X[at].ToString()+UnderlineRemovingLiteral:s.ToString());
+        /// Xの先頭N要素のToString()を取ってX[at].ToString()を下線を引くエスケープシーケンスで囲んだ文字列の列を返す。
+        /// </summary>
+        /// <param name="X">データの配列</param>
+        /// <param name="at">下線を引く要素の番号</param>
+        /// <param name="N">先頭要素の数</param>
+        /// <typeparam name="T">データの型。ToString()を実装していること。</typeparam>
+        /// <returns></returns>
+        internal IEnumerable<string> Highlight(int at)
+            => count[0..at].Select(s => s.ToString())
+                .Append($"\x1b[4m{count[at]}\x1b[0m")
+                .Concat(count[(at + 1)..nChildren].Select(s => s.ToString()));
     }
     /// <summary>
     /// 葉。ここにデータが格納される。
@@ -253,22 +272,35 @@ class BTree<T>
             // もし分割が行われていなければ、そのまま戻る
             if (result == null || result.newNode == null)
             {
-                //TODO: データ依存の解消
-                UpdateSizeNaive(node, pos);
+                //countをアップデート
+                var c0 = node.GetC0(pos);
+                var dn = node.children[pos]!.size - c0;
+                for (int i = pos; i < node.nChildren; i++)
+                    node.count[i] += dn;
                 return result;
             }
-            // 分割が行われていたので、節nodeにそれ（result.newNode）を挿入する
+            // 分割が行われていたので、節nodeの、posの直後にそれ（result.newNode）を挿入する
             // 節nodeに追加の余地があるか？
             if (node.nChildren < CHILD_CAPACITY)
             {
+                //pos+1 -thを開けるように右シフト
                 //改変。Array.Copyにより一斉にコピー。
+                var c0 = node.GetC0(pos);
+                var nl = node.children[pos]!.size;
+                var nr = result.newNode.size;
+                var dn = (nl + nr) - c0;
+                // Console.Write($"\t{c0} -> {nl}, {nr}");
                 Array.Copy(node.children, pos + 1, node.children, pos + 2, node.nChildren - (pos + 1));
                 Array.Copy(node.lowest, pos + 1, node.lowest, pos + 2, node.nChildren - (pos + 1));
+                Array.Copy(node.count, pos + 1, node.count, pos + 2, node.nChildren - (pos + 1));
                 node.children[pos + 1] = result.newNode;
                 node.lowest[pos + 1] = result.lowest;
+                node.count[pos] += nl - c0;
+                node.count[pos + 1] = node.count[pos] + nr;
                 node.nChildren++;
-                //TODO: データ依存の解消
-                UpdateSizeNaive(node, pos);
+                for (int i = pos + 2; i < node.nChildren; i++)
+                    node.count[i] += dn;
+                // Console.WriteLine("\t->" + string.Join(',', node.count[0..node.nChildren]));
                 return new(null, -1);
             }
             else
@@ -277,6 +309,11 @@ class BTree<T>
                 // 新しい内部節newNodeを割り当てる
                 var newNode = new InternalNode();
                 newNode.height = node.height;
+                //カウントチェック
+                var c0 = node.GetC0(pos);
+                var nl = node.children[pos]!.size;
+                var nr = result.newNode.size;
+                var dn = (nl + nr) - c0;
                 // 節result.newNodeがどちらの節に挿入されるかで、場合分けする
                 if (pos < HALF_CHILD - 1)
                 {
@@ -308,11 +345,20 @@ class BTree<T>
                 // 子の数nChildを更新する
                 node.nChildren = HALF_CHILD;
                 newNode.nChildren = (CHILD_CAPACITY + 1) - HALF_CHILD;
-                // 分割してないですよね？
-                //TODO:データ依存の解消
-                UpdateSizeNaive(node, pos);
-                UpdateSizeNaive(newNode, 0);
-
+                // カウントを更新
+                var tmpCount = new int[CHILD_CAPACITY + 1];
+                Array.Copy(node.count, 0, tmpCount, 0, pos + 1);
+                //1個ずつの挿入が前提なので、node.countが分割される場合、メソッドに入る前のcountは^1まで意味を持つ。
+                Array.Copy(node.count, pos + 1, tmpCount, pos + 2, CHILD_CAPACITY - (pos + 1));
+                tmpCount[pos] += nl - c0;
+                if (pos + 1 <= CHILD_CAPACITY) tmpCount[pos + 1] = tmpCount[pos] + nr;
+                for (int i = pos + 2; i < CHILD_CAPACITY + 1; i++)
+                    tmpCount[i] += dn;
+                nl = tmpCount[HALF_CHILD - 1]; //左子全体のカウント
+                for (int i = HALF_CHILD; i < CHILD_CAPACITY + 1; i++)
+                    tmpCount[i] -= nl;
+                Array.Copy(tmpCount, 0, node.count, 0, HALF_CHILD);
+                Array.Copy(tmpCount, HALF_CHILD, newNode.count, 0, (CHILD_CAPACITY + 1) - HALF_CHILD);
                 // 分割して作られた節をフィールドnewNodeに、
                 // またその最小値をlowestフィールドに返す
                 return new(newNode, newNode.lowest[0]);
@@ -447,7 +493,7 @@ class BTree<T>
                 Array.Clear(b.children, bn - move, move); // 不要な参照を消す
                 Array.Copy(b.lowest, move, b.lowest, 0, bn - move);
                 Array.Copy(b.count, move, b.count, 0, bn - move);
-                // now, a.Count=={a[0..1],...,a[0..an],a[an..an+1],...,a[an,...,an+move]}, b.Count=={a[an..an+move]+b[0..1],...,a[an..an+move]+b[0..bn-move]}
+                // now, a.Count=={a[0..1],...,a[0..an],a[an..an+1],...,a[an..an+move]}, b.Count=={a[an..an+move]+b[0..1],...,a[an..an+move]+b[0..bn-move]}
                 for (int i = an; i < an + move; i++)
                     a.count[i] += ac;
                 for (int i = 0; i < bn - move; i++)
@@ -528,23 +574,29 @@ class BTree<T>
             // 部分木に何の変化もなければ、そのまま戻る
             if (result == DeleteAuxResult.NOT_FOUND || result == DeleteAuxResult.OK)
             {
-                //TODO:データ依存の解消
-                UpdateSizeNaive(node, pos);
+                //カウントを更新
+                var c0 = node.GetC0(pos);
+                var nc = node.children[pos]!.size;
+                for (int i = pos; i < node.nChildren; i++)
+                    node.count[i] += (nc - c0);
                 return result;
             }
 
             // 部分木posを再編成する必要があるか？
+            // Console.Write(result + "\t");
+            //要素を左から借りてくる、なければ右から。
+            int sub = (pos == 0) ? 0 : pos - 1;
             if (result == DeleteAuxResult.OK_NEED_REORG)
             {
-                int sub = (pos == 0) ? 0 : pos - 1;
                 // 部分木subとsub+1を再編成する
                 joined = MergeNodes(node, sub);
                 // もし、subとsub+1が併合されていたら、部分木sub+1をnodeから削除する必要がある
                 if (joined) pos = sub + 1;
             }
             var myResult = DeleteAuxResult.OK; // このメソッドが返す戻り値。とりあえずOKにしておく
+            var removingExecuted = result == DeleteAuxResult.OK_REMOVED || joined;
             // 部分木posが削除された
-            if (result == DeleteAuxResult.OK_REMOVED || joined)
+            if (removingExecuted)
             {
                 // nodeの部分木を詰め合わせる
                 Array.Copy(node.children, pos + 1, node.children, pos, node.nChildren - (pos + 1));
@@ -556,8 +608,27 @@ class BTree<T>
                     myResult = DeleteAuxResult.OK_NEED_REORG;
                 }
             }
-            //TODO:データ依存の解消
-            UpdateSizeNaive(node, 0);
+            //カウントを更新
+            //posが削除されたら、sub,sub+1は詰められる。
+            //そうでなければ、sub,sub+1は再分配される。
+            if (removingExecuted)
+            {
+                var fc = sub == 0 ? node.count[1] : node.count[sub + 1] - node.count[sub - 1];
+                var nc = node.children[sub]!.size; //統合済
+                Array.Copy(node.count, sub + 1, node.count, sub, (node.nChildren + 1) - (sub + 1));
+                for (int i = sub; i < node.nChildren; i++)
+                    node.count[i] += (nc - fc);
+            }
+            else
+            {
+                var f0c = sub == 0 ? 0 : node.count[sub - 1];
+                var fc = node.count[sub + 1] - f0c;
+                var nlc = node.children[sub]!.size;
+                var nc = nlc + node.children[sub + 1]!.size;
+                node.count[sub] = f0c + nlc;
+                for (int i = sub + 1; i < node.nChildren; i++)
+                    node.count[i] += (nc - fc);
+            }
             return myResult;
         }
     }
