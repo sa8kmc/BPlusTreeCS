@@ -1,8 +1,4 @@
-﻿#if BenchmarkMode
-var N = 100000;
-Program.Benchmark(N);
-#endif
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -11,19 +7,17 @@ using System.Text.RegularExpressions;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
 
+var N = 256;
+// Program.Benchmark(N);
 
 var X = new BTree<int>();
-var keys = Enumerable.Range(0, 256).OrderBy(s => Guid.NewGuid());
-var tmp = 0;
-foreach (var key in keys)
+var S = Enumerable.Range(0, N).OrderBy(i => Guid.NewGuid()).ToList();
+foreach (var s in S)
 {
-    X.Insert(key, -key);
-    if (X.size - tmp != 1) throw new SystemException("Error in Count");
-    tmp = X.size;
+    X.Insert(s, -s);
 }
-foreach (var key in keys)
+foreach (var s in S)
 {
-    X.Delete(key);
-    if (X.size - tmp != -1) throw new SystemException("Error in Count");
-    tmp = X.size;
+    X.SearchAt(s);
+    System.Console.WriteLine(X.GetData() + s);
 }

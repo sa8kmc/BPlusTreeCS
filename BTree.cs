@@ -24,7 +24,7 @@ class BTree<T>
     /// <summary>
     /// B+木の階数。
     /// </summary>
-    public static readonly int CHILD_CAPACITY = 5;
+    public static readonly int CHILD_CAPACITY = 128;
     ///内部節、葉、仮想節を総称した節のクラス
     abstract class Node
     {
@@ -84,6 +84,41 @@ class BTree<T>
                         b = mid;
                 }
                 return a;
+            }
+        }
+        internal int LocateSubtreeAt(int x, out int remain)
+        {
+#if DEBUG
+            if (x < 0 || x >= size) throw new IndexOutOfRangeException();
+#endif
+            //seeks for the $i s.t. count[i-1]<=x<count[i]
+            //implicit 0 at count[-1]に注意。
+            if (CHILD_CAPACITY <= 8)
+            {
+                for (int i = nChildren - 1; i >= 1; i--)
+                {
+                    if (count[i - 1] <= x)
+                    {
+                        remain = x - count[i - 1];
+                        return i;
+                    }
+                }
+                remain = x;
+                return 0;
+            }
+            else
+            {
+                int i = -1, j = nChildren - 1; // (i,j]
+                while (j - i > 1)
+                {
+                    var mid = (i + j) / 2; //since j-i>=2, i<mid<j.
+                    if (count[mid] <= x)
+                        i = mid;
+                    else
+                        j = mid;
+                }
+                remain = j == 0 ? x : x - count[j - 1];
+                return j;
             }
         }
         internal int GetC0(int i) => i == 0 ? count[0] : count[i] - count[i - 1];
@@ -720,4 +755,16 @@ class BTree<T>
     }
     #endregion
 
+    #region Indexer
+    public bool SearchAt(int i)
+    {
+        currentLeaf = null;
+        if (root == null) return false;
+        var p = root as Node;
+        while (p is InternalNode node)
+            p = node.children[node.LocateSubtreeAt(i, out i)];
+        currentLeaf = p as Leaf;
+        return true;
+    }
+    #endregion
 }

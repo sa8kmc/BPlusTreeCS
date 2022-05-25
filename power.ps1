@@ -1,12 +1,11 @@
 # 何をしたいのか
 # 木の階数パラメータによる性能の変化を、一定の要素数ごとに調べたい。
 # 
-
 $rankSrc = './BTree.cs'
 $DeclareRank = 'public static readonly int CHILD_CAPACITY = '
 $caseSrc = './Program.cs'
 $DeclareCase = 'var N = '
-$resultPool = './Comparison2.dat'
+$resultPool = './Comparison.dat'
 if (Test-Path $resultPool) {
     Remove-Item $resultPool 
 }
@@ -25,3 +24,6 @@ for ($j = 8; $j -le 13; $j++) {
 | Set-Content $rankSrc -Encoding UTF8
 (Get-Content $caseSrc -Encoding UTF8) -replace "${DeclareCase}.*", "${DeclareCase}100000;" `
 | Set-Content $caseSrc -Encoding UTF8
+
+# 処理が終わったらスリープする
+Add-Type -Assembly System.Windows.Forms; [System.Windows.Forms.Application]::SetSuspendState('Suspend', $false, $false);
