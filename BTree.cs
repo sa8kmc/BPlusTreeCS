@@ -15,9 +15,10 @@ using System.Runtime.InteropServices;
 //a[i...j]={a[i],...,a[j]}
 //a[i:j]={a[i],...,a[i+j-1]}
 /// <summary>
-/// long型の昇順に並べたB+木。
+/// 列としてのB+木。平衡性により任意箇所への挿入削除検索がO(log n)ででき、
+/// 多分木性により現実計算において効率的なデータ処理が可能となっている(定数倍の改善)。
 /// </summary>
-/// <typeparam name="T">long型のキーに紐付けて格納するデータの型。</typeparam>
+/// <typeparam name="T">格納するデータの型。</typeparam>
 class BTree<T>
 {
     /// <summary>
@@ -35,7 +36,6 @@ class BTree<T>
     {
         internal int nChildren;
         internal Node?[] children;
-        // internal long[] lowest; //各部分木の最小の要素
         internal int height;
         internal int[] count; //Count[i]=0..(i+1)番目の部分木が持つ葉の数の合計
         ///constructor: 空の内部節を生成する
