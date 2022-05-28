@@ -12,20 +12,19 @@ partial class Program
         {
             // Console.Write($"case {k}");
             var X = new BTree<int>();
-            var S = Enumerable.Range(0, N).OrderBy(i => Guid.NewGuid()).ToList();
+            var rnd = new Random();
             var sw = new Stopwatch();
             sw.Start();
-            foreach (var s in S)
+            for (int i = 0; i < N; i++)
             {
-                X.Insert(s, -s);
+                X.InsertAt(rnd.Next(i), -i);
             }
             sw.Stop();
             timesInsertion[k] = sw.ElapsedMilliseconds;
-            S = S.OrderBy(i => Guid.NewGuid()).ToList();
             sw.Restart();
-            foreach (var s in S)
+            for (int i = 0; i < N; i++)
             {
-                X.Delete(s);
+                X.DeleteAt(rnd.Next((N - 1) - i));
             }
             sw.Stop();
             timesDeletion[k] = sw.ElapsedMilliseconds;

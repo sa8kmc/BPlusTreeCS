@@ -12,19 +12,19 @@ Program.Benchmark(N);
 
 // var X = new BTree<int>();
 // var S = Enumerable.Range(0, N).OrderBy(i => Guid.NewGuid()).ToList();
+// var rnd = new Random();
 // var tmp = 0;
-// foreach (var s in S)
+// for (int i = 0; i < N; i++)
 // {
-//     X.Insert(s, -s);
-//     // System.Console.WriteLine("\t" + tmp);
-//     // System.Console.WriteLine(X.ToString());
+//     X.InsertAt(rnd.Next(i + 1), -i);
+//     System.Console.WriteLine(X.size);
 //     if (X.size - tmp != 1) throw new SystemException("Error in Count");
 //     tmp = X.size;
 // }
-// foreach (var s in S)
+// for (int i = 0; i < N; i++)
 // {
-//     X.Delete(s);
-//     // System.Console.WriteLine(X.GetData() + s);
+//     X.DeleteAt(rnd.Next((N - 1) - i));
+//     System.Console.WriteLine(X.size);
 //     if (X.size - tmp != -1) throw new SystemException("Error in Count");
 //     tmp = X.size;
 // }
