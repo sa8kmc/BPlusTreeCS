@@ -24,11 +24,11 @@ class BTree<T>
     /// <summary>
     /// B+木の階数。
     /// </summary>
-    public static readonly int CHILD_CAPACITY = 128;
+    public static readonly int CHILD_CAPACITY = 256;
     ///内部節、葉、仮想節を総称した節のクラス
     abstract class Node
     {
-        internal int serial;
+        internal long serial;
         internal abstract int size { get; }
     }
     ///内部節
@@ -162,7 +162,7 @@ class BTree<T>
     /// <value>nullであれば空。Leaf型であれば唯1個の要素からなる木を表す。
     /// さもなくばInternal型で、2個以上の要素を持つ木を表す。</value>
     Node? root { get; set; }
-    private static int serialNumber = 0;
+    private static long serialNumber = 0;
     private static readonly int HALF_CHILD = (CHILD_CAPACITY + 1) / 2;
 
     private Leaf? currentLeaf { get; set; }
