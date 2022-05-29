@@ -1,4 +1,5 @@
 N	capacity	"samples insertion Ave[ms]"	"insertion unbiased SD[ms]"	"deletion Ave[ms]"	"deletion unbiased SD[ms]"
+# lowestとsizeの両方を更新していた場合
 10000	4	50	3.32	0.614	2.96	1.296
 31622	4	50	12.02	1.01	10.1	0.5
 100000	4	50	65.68	2.983	50.06	3.807
