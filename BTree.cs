@@ -24,7 +24,7 @@ class BTree<T>
     /// <summary>
     /// B+木の階数。
     /// </summary>
-    public static readonly int CHILD_CAPACITY = 8;
+    public static readonly int CAPACITY = 4;
     /// <summary 節のクラス定義 />
     #region NodeClassDefinition
     ///内部節、葉、仮想節を総称した節のクラス
@@ -45,15 +45,15 @@ class BTree<T>
         {
             serial = serialNumber++;
             nc = 0;
-            children = new Node?[CHILD_CAPACITY];
-            count = new int[CHILD_CAPACITY];
+            children = new Node?[CAPACITY];
+            count = new int[CAPACITY];
             height = 2;
         }
         internal InternalNode(int heightA, Node?[] A)
         {
             serial = serialNumber++;
-            children = new Node?[CHILD_CAPACITY];
-            count = new int[CHILD_CAPACITY];
+            children = new Node?[CAPACITY];
+            count = new int[CAPACITY];
             this.height = heightA + 1;
             nc = A.Length;
             Array.Copy(A, children, A.Length);
@@ -64,8 +64,8 @@ class BTree<T>
         internal InternalNode(int heightA, Node?[] A, int start, int len)
         {
             serial = serialNumber++;
-            children = new Node?[CHILD_CAPACITY];
-            count = new int[CHILD_CAPACITY];
+            children = new Node?[CAPACITY];
+            count = new int[CAPACITY];
             this.height = heightA + 1;
             nc = len;
             Array.Copy(A, start, children, 0, len);
@@ -92,7 +92,7 @@ class BTree<T>
 #endif
             //seeks for the $i s.t. count[i-1]<=x<count[i]
             //implicit 0 at count[-1]に注意。
-            if (CHILD_CAPACITY <= 8)
+            if (CAPACITY <= 8)
             {
                 for (int i = nc - 1; i >= 1; i--)
                 {
@@ -163,7 +163,7 @@ class BTree<T>
     /// さもなくばInternal型で、2個以上の要素を持つ木を表す。</value>
     internal Node? root { get; private set; }
     private static long serialNumber = 0;
-    private static readonly int HALF_CHILD = (CHILD_CAPACITY + 1) / 2;
+    private static readonly int HALF_CAPACITY = (CAPACITY + 1) / 2;
 
     private Leaf? currentLeaf { get; set; }
     public int totalHeight
@@ -194,7 +194,6 @@ class BTree<T>
         if (A.Length == 0) return null;
         else if (A.Length == 1)
             return new Leaf(A[0]);
-        var recom = (3 * CHILD_CAPACITY + 3) / 4;
         Node[] Level0 = new Leaf[A.Length];
         for (int i = 0; i < A.Length; i++)
             Level0[i] = new Leaf(A[i]);
@@ -202,21 +201,20 @@ class BTree<T>
         var height = 1;
         while (Level0.Length > 1)
         {
-            Level = new InternalNode[Level0.Length.Ceil(recom)];
+            Level = new InternalNode[Level0.Length.Ceil(CAPACITY)];
             //ノード達の親を作成
-            int j = 0;
-            for (j = 0; recom * (j + 1) < Level0.Length; j++)
+            var LN = Level.Length;
+            if (LN == 1)
+                Level[0] = new InternalNode(height, Level0);
+            else
             {
-                var parent = new InternalNode(height, Level0[(recom * j)..(recom * (j + 1))]);
-                Level[j] = parent;
-            }
-            Level[^1] = new InternalNode(height, Level0[(recom * j)..]);
-            //端数調整
-            //TODO: 内部節の末尾2個を初めから半々で作れば効率化が期待できる
-            if (Level.Length != 1 && Level0.Length % recom < HALF_CHILD)
-            {
-                var tobe = (recom + Level0.Length % recom + 1) / 2;
-                Shift(Level[^2], Level[^1], tobe - recom);
+                for (int j = 0; j < LN - 2; j++)
+                    Level[j] = new InternalNode(height, Level0, CAPACITY * j, CAPACITY);
+                //Last 2 parents
+                var remain = CAPACITY + ((Level0.Length - 1) % CAPACITY + 1);
+                var leftSize = (remain + 1) / 2;
+                Level[^2] = new InternalNode(height, Level0, CAPACITY * (LN - 2), leftSize);
+                Level[^1] = new InternalNode(height, Level0, CAPACITY * (LN - 2) + leftSize, remain - leftSize);
             }
             Level0 = Level;
             height++;
@@ -385,7 +383,7 @@ class BTree<T>
             }
             // 分割が行われていたので、節nodeの、posの直後にそれ（result.newNode）を挿入する
             // 節nodeに追加の余地があるか？
-            if (node.nc < CHILD_CAPACITY)
+            if (node.nc < CAPACITY)
             {
                 //pos+1 -thを開けるように右シフト
                 //改変。Array.Copyにより一斉にコピー。
@@ -417,13 +415,13 @@ class BTree<T>
                 var nr = result.size;
                 var dn = (nl + nr) - c0;
                 // 節resultがどちらの節に挿入されるかで、場合分けする
-                if (pos < HALF_CHILD - 1)
+                if (pos < HALF_CAPACITY - 1)
                 {
                     // 節resultは、節nodeの側に挿入される
                     // まず、HALF_CHILD-1～MAX_CHILD-1番目の部分木を、節nodeから節newNodeへと移す
-                    Array.Copy(node.children, HALF_CHILD - 1, newNode.children, 0, (CHILD_CAPACITY - 1) - (HALF_CHILD - 1) + 1);
+                    Array.Copy(node.children, HALF_CAPACITY - 1, newNode.children, 0, (CAPACITY - 1) - (HALF_CAPACITY - 1) + 1);
                     // 0～HALF_CHILD-2番目の部分木の間の適切な位置に、節resultを挿入する
-                    Array.Copy(node.children, pos + 1, node.children, pos + 2, (HALF_CHILD - 2) - (pos + 1) + 1);
+                    Array.Copy(node.children, pos + 1, node.children, pos + 2, (HALF_CAPACITY - 2) - (pos + 1) + 1);
                     node[pos + 1] = result;
                 }
                 else
@@ -432,29 +430,29 @@ class BTree<T>
                     // HALF_CHILD～MAX_CHILD-1番目の部分木を、節newNodeに移動する。同時に、節resultを適切な位置に挿入する。
 
                     //HALF_CHILD~pos
-                    Array.Copy(node.children, HALF_CHILD, newNode.children, 0, pos - HALF_CHILD + 1);
+                    Array.Copy(node.children, HALF_CAPACITY, newNode.children, 0, pos - HALF_CAPACITY + 1);
                     //result
-                    newNode[pos - HALF_CHILD + 1] = result;
+                    newNode[pos - HALF_CAPACITY + 1] = result;
                     //pos+1~MAX_CHILD-1
-                    Array.Copy(node.children, pos + 1, newNode.children, pos - HALF_CHILD + 2, CHILD_CAPACITY - (pos + 1));
+                    Array.Copy(node.children, pos + 1, newNode.children, pos - HALF_CAPACITY + 2, CAPACITY - (pos + 1));
                 }
                 // 子の数nChildを更新する
-                node.nc = HALF_CHILD;
-                newNode.nc = (CHILD_CAPACITY + 1) - HALF_CHILD;
+                node.nc = HALF_CAPACITY;
+                newNode.nc = (CAPACITY + 1) - HALF_CAPACITY;
                 // カウントを更新
-                var tmpCount = new int[CHILD_CAPACITY + 1];
+                var tmpCount = new int[CAPACITY + 1];
                 Array.Copy(node.count, 0, tmpCount, 0, pos + 1);
                 //1個ずつの挿入が前提なので、node.countが分割される場合、メソッドに入る前のcountは^1まで意味を持つ。
-                Array.Copy(node.count, pos + 1, tmpCount, pos + 2, CHILD_CAPACITY - (pos + 1));
+                Array.Copy(node.count, pos + 1, tmpCount, pos + 2, CAPACITY - (pos + 1));
                 tmpCount[pos] += nl - c0;
-                if (pos + 1 <= CHILD_CAPACITY) tmpCount[pos + 1] = tmpCount[pos] + nr;
-                for (int i = pos + 2; i < CHILD_CAPACITY + 1; i++)
+                if (pos + 1 <= CAPACITY) tmpCount[pos + 1] = tmpCount[pos] + nr;
+                for (int i = pos + 2; i < CAPACITY + 1; i++)
                     tmpCount[i] += dn;
-                nl = tmpCount[HALF_CHILD - 1]; //左子全体のカウント
-                for (int i = HALF_CHILD; i < CHILD_CAPACITY + 1; i++)
+                nl = tmpCount[HALF_CAPACITY - 1]; //左子全体のカウント
+                for (int i = HALF_CAPACITY; i < CAPACITY + 1; i++)
                     tmpCount[i] -= nl;
-                Array.Copy(tmpCount, 0, node.count, 0, HALF_CHILD);
-                Array.Copy(tmpCount, HALF_CHILD, newNode.count, 0, (CHILD_CAPACITY + 1) - HALF_CHILD);
+                Array.Copy(tmpCount, 0, node.count, 0, HALF_CAPACITY);
+                Array.Copy(tmpCount, HALF_CAPACITY, newNode.count, 0, (CAPACITY + 1) - HALF_CAPACITY);
                 // 分割して作られた節をフィールドnewNodeに、
                 // またその最小値をlowestフィールドに返す
                 return newNode;
@@ -524,7 +522,7 @@ class BTree<T>
 
         var an = a.nc;
         var bn = b.nc;
-        if (an + bn <= CHILD_CAPACITY)
+        if (an + bn <= CAPACITY)
         {
             // 部分木aとbを併合しなければならない
             // bの子をすべてaへ移動する
@@ -614,7 +612,7 @@ class BTree<T>
                 Array.Copy(node.children, pos + 1, node.children, pos, node.nc - (pos + 1));
                 node[node.nc - 1] = null; // 不要な参照を消す
                 // もし、nodeの部分木の数のHALF_CHILDより小さいなら再編成が必要である
-                if (--node.nc < HALF_CHILD)
+                if (--node.nc < HALF_CAPACITY)
                 {
                     myResult = DeleteAuxResult.OK_NEED_REORG;
                 }
@@ -715,7 +713,7 @@ class BTree<T>
                 return LI;
             }
             // H1をLの子にマージする。
-            if (LI.nc < CHILD_CAPACITY)
+            if (LI.nc < CAPACITY)
             {
                 LI[LI.nc - 0] = R1;
                 LI.count[LI.nc - 1] = (LI.nc == 1 ? 0 : LI.count[LI.nc - 2]) + L1!.size;
@@ -728,17 +726,17 @@ class BTree<T>
             {
                 var R0 = new InternalNode();
                 R0.height = LI.height;
-                var mnc = LI.nc - HALF_CHILD; // LI.nChildren==CHILD_CAPACITY
+                var mnc = LI.nc - HALF_CAPACITY; // LI.nChildren==CHILD_CAPACITY
                 // LIの末尾をR0へコピー
-                Array.Copy(LI.children, HALF_CHILD, R0.children, 0, mnc);
-                Array.Copy(LI.count, HALF_CHILD, R0.count, 0, mnc);
-                var lc = LI.count[HALF_CHILD - 1];
+                Array.Copy(LI.children, HALF_CAPACITY, R0.children, 0, mnc);
+                Array.Copy(LI.count, HALF_CAPACITY, R0.count, 0, mnc);
+                var lc = LI.count[HALF_CAPACITY - 1];
                 var mc = LI.count[LI.nc - 1] - lc;
                 // カウントを精算
                 for (int i = 0; i < mnc; i++)
                     R0.count[i] -= lc;
                 // サイズを更新
-                LI.nc = HALF_CHILD;
+                LI.nc = HALF_CAPACITY;
                 R0.nc = mnc + 1;
                 // R1をR0の末尾に追加
                 R0[mnc] = R1;
@@ -765,7 +763,7 @@ class BTree<T>
             var lc = L1!.size;
             var rc = R1.size;
             var dc = (lc + rc) - c0;
-            if (RI.nc < CHILD_CAPACITY)
+            if (RI.nc < CAPACITY)
             {
                 //R1は1番に挿入される
                 Array.Copy(RI.children, 1, RI.children, 2, RI.nc - 1);
@@ -787,25 +785,25 @@ class BTree<T>
                 // L1, R1, LI[1..]を分割
                 var R0 = new InternalNode();
                 R0.height = RI.height;
-                Array.Copy(RI.children, HALF_CHILD - 1, R0.children, 0, CHILD_CAPACITY - (HALF_CHILD - 1));
-                Array.Copy(RI.children, 1, RI.children, 2, HALF_CHILD - 2);
+                Array.Copy(RI.children, HALF_CAPACITY - 1, R0.children, 0, CAPACITY - (HALF_CAPACITY - 1));
+                Array.Copy(RI.children, 1, RI.children, 2, HALF_CAPACITY - 2);
                 RI[1] = R1;
                 // 子のnChildrenを更新する
-                RI.nc = HALF_CHILD;
-                R0.nc = (CHILD_CAPACITY + 1) - HALF_CHILD;
+                RI.nc = HALF_CAPACITY;
+                R0.nc = (CAPACITY + 1) - HALF_CAPACITY;
                 //カウントを更新
-                var tmpCount = new int[CHILD_CAPACITY + 1];
-                Array.Copy(RI.count, 1, tmpCount, 2, CHILD_CAPACITY - 1);
+                var tmpCount = new int[CAPACITY + 1];
+                Array.Copy(RI.count, 1, tmpCount, 2, CAPACITY - 1);
                 tmpCount[0] = lc;
                 tmpCount[1] = lc + rc;
-                for (int i = 2; i <= CHILD_CAPACITY; i++)
+                for (int i = 2; i <= CAPACITY; i++)
                     tmpCount[i] += dc;
                 //左子の範囲を取り換え、新しい左子全体のカウント
-                lc = tmpCount[HALF_CHILD - 1];
-                for (int i = HALF_CHILD; i <= CHILD_CAPACITY; i++)
+                lc = tmpCount[HALF_CAPACITY - 1];
+                for (int i = HALF_CAPACITY; i <= CAPACITY; i++)
                     tmpCount[i] -= lc;
-                Array.Copy(tmpCount, 0, RI.count, 0, HALF_CHILD);
-                Array.Copy(tmpCount, HALF_CHILD, R0.count, 0, (CHILD_CAPACITY + 1) - HALF_CHILD);
+                Array.Copy(tmpCount, 0, RI.count, 0, HALF_CAPACITY);
+                Array.Copy(tmpCount, HALF_CAPACITY, R0.count, 0, (CAPACITY + 1) - HALF_CAPACITY);
                 Hot = R0;
                 return RI;
             }
@@ -815,7 +813,7 @@ class BTree<T>
             InternalNode LI = (L as InternalNode)!, RI = (R as InternalNode)!;
             var lnc = LI.nc;
             var rnc = RI.nc;
-            if (lnc + rnc <= CHILD_CAPACITY)
+            if (lnc + rnc <= CAPACITY)
             {
                 //単純にRIをLIに統合する
                 Shift(LI, RI, rnc);
@@ -983,7 +981,7 @@ class BTree<T>
         if (root == null) return true;
         if (root is Leaf) return true;
         var XI = (InternalNode)root;
-        if (XI.nc < 2 || XI.nc > CHILD_CAPACITY)
+        if (XI.nc < 2 || XI.nc > CAPACITY)
             return false;
         return XI.children[0..XI.nc].All(c => c != null && isPartBPlusTree(c) && c!.height == root.height - 1);
     }
@@ -996,7 +994,7 @@ class BTree<T>
     {
         if (X == null || X is Leaf) return true;
         var XI = (InternalNode)X;
-        if (XI.nc < HALF_CHILD || XI.nc > CHILD_CAPACITY)
+        if (XI.nc < HALF_CAPACITY || XI.nc > CAPACITY)
             return false;
         return XI.children[0..XI.nc].All(c => c != null && isPartBPlusTree(c) && c.height == X.height - 1);
     }

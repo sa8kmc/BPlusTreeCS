@@ -7,12 +7,12 @@ using System.Text.RegularExpressions;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
 
-var N = 100;
+// var N = 100;
 // Program.Benchmark(N);
 
 
-var X = new BTree<int>();
-var S = Enumerable.Range(0, N).OrderBy(i => Guid.NewGuid()).ToList();
+// var X = new BTree<int>();
+// var S = Enumerable.Range(0, N).OrderBy(i => Guid.NewGuid()).ToList();
 // var rnd = new Random();
 // var tmp = 0;
 // for (int i = 0; i < N; i++)
@@ -32,7 +32,10 @@ var S = Enumerable.Range(0, N).OrderBy(i => Guid.NewGuid()).ToList();
 //     if (!X.isBPlusTree()) System.Console.WriteLine("Warning: B+ structure Collapsed");
 // }
 
-X = new BTree<int>(Enumerable.Range(0, N).ToArray());
-System.Console.WriteLine(X);
-System.Console.WriteLine(X.isBPlusTree());
+for (int K = 0; K < 1000; K++)
+{
+    var ERG = Enumerable.Range(0, K).ToArray();
+    var Y = new BTree<int>(ERG);
+    if (!Y.isBPlusTree()) System.Console.WriteLine(K);
+}
 

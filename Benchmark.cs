@@ -35,7 +35,7 @@ partial class Program
         // System.Console.WriteLine($"Deletion :{timesDeletion.Average(),10:f3}"
         //     + $"±{timesDeletion.PopulationStandardDeviation(),8:f3}ms");
         System.Console.WriteLine(
-            string.Join(',', new long[] { N, BTree<int>.CHILD_CAPACITY, testTimes })
+            string.Join(',', new long[] { N, BTree<int>.CAPACITY, testTimes })
             + "," + string.Join(
                 ',', new string[] {
                     string.Format("{0:f3}", timesInsertion.Average()),
