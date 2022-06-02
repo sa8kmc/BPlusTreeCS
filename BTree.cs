@@ -5,7 +5,6 @@ using System.Numerics;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Runtime.InteropServices;
-//TODO: B+木をSplitする機能
 /*
  * 参考： 近藤嘉雪. 『定本Javaプログラマのためのアルゴリズムとデータ構造』. ソフトバンククリエイティブ, 2011.
  */
@@ -46,27 +45,35 @@ class BTree<T>
         {
             serial = serialNumber++;
             nc = 0;
-            children = new Node[CHILD_CAPACITY];
-            // lowest = new long[CHILD_CAPACITY];
+            children = new Node?[CHILD_CAPACITY];
             count = new int[CHILD_CAPACITY];
             height = 2;
         }
-        internal InternalNode(int heightA, Node[] A)
+        internal InternalNode(int heightA, Node?[] A)
         {
             serial = serialNumber++;
-            nc = A.Length;
-            children = new Node[CHILD_CAPACITY];
-            // lowest = new long[CHILD_CAPACITY];
+            children = new Node?[CHILD_CAPACITY];
             count = new int[CHILD_CAPACITY];
-            this.height = height + 1;
-            for (int i = 0; i < A.Length; i++)
-            {
-                children[i] = A[i];
-                count[i] = A[i].size;
-            }
+            this.height = heightA + 1;
+            nc = A.Length;
+            Array.Copy(A, children, A.Length);
+            count[0] = A[0]?.size ?? 0;
             for (int i = 1; i < A.Length; i++)
-                count[i] += count[i - 1];
+                count[i] = count[i - 1] + (A[i]?.size ?? 0);
         }
+        internal InternalNode(int heightA, Node?[] A, int start, int len)
+        {
+            serial = serialNumber++;
+            children = new Node?[CHILD_CAPACITY];
+            count = new int[CHILD_CAPACITY];
+            this.height = heightA + 1;
+            nc = len;
+            Array.Copy(A, start, children, 0, len);
+            count[0] = A[start]?.size ?? 0;
+            for (int i = 1; i < len; i++)
+                count[i] = count[i - 1] + (A[start + i]?.size ?? 0);
+        }
+
         internal override int size { get => count[nc - 1]; }
         public Node? this[int i]
         {
@@ -178,6 +185,10 @@ class BTree<T>
     {
         root = BuildFrom(A);
     }
+    public BTree(Node? X)
+    {
+        root = X;
+    }
     internal Node? BuildFrom(T[] A)
     {
         if (A.Length == 0) return null;
@@ -201,7 +212,7 @@ class BTree<T>
             }
             Level[^1] = new InternalNode(height, Level0[(recom * j)..]);
             //端数調整
-            //TODO: 初めから半々で作っていれば効率化が期待できる
+            //TODO: 内部節の末尾2個を初めから半々で作れば効率化が期待できる
             if (Level.Length != 1 && Level0.Length % recom < HALF_CHILD)
             {
                 var tobe = (recom + Level0.Length % recom + 1) / 2;
@@ -698,7 +709,7 @@ class BTree<T>
             if (R1 == null)
             {
                 // 子が増えていない
-                LI.count[LI.nc - 1] = LI.count[LI.nc - 2] + L1!.size;
+                LI.count[LI.nc - 1] = (LI.nc == 1 ? 0 : LI.count[LI.nc - 2]) + L1!.size;
                 Hot = null;
                 return LI;
             }
@@ -706,7 +717,7 @@ class BTree<T>
             if (LI.nc < CHILD_CAPACITY)
             {
                 LI[LI.nc - 0] = R1;
-                LI.count[LI.nc - 1] = LI.count[LI.nc - 2] + L1!.size;
+                LI.count[LI.nc - 1] = (LI.nc == 1 ? 0 : LI.count[LI.nc - 2]) + L1!.size;
                 LI.count[LI.nc - 0] = LI.count[LI.nc - 1] + R1!.size;
                 LI.nc++;
                 Hot = null;
@@ -800,7 +811,6 @@ class BTree<T>
         }
         else
         {
-            //TODO:ここのデバッグ
             InternalNode LI = (L as InternalNode)!, RI = (R as InternalNode)!;
             var lnc = LI.nc;
             var rnc = RI.nc;
@@ -843,7 +853,78 @@ class BTree<T>
     public void MergeRight(Node G) => root = Merge(this.root, G);
     public void PushFront(T data) => root = Merge(new Leaf(data), root);
     #endregion
-    #region ToString
+    #region Split
+    /// <summary>
+    /// 部分木Xを左からat個で切断する。
+    /// </summary>
+    /// <param name="L">左木。ただし、B+木の根が唯1個の子を持つ節の列(0個以上)の末尾に付いているような構造を取る。</param>
+    /// <param name="R">左木。ただし、B+木の根が唯1個の子を持つ節の列(0個以上)の末尾に付いているような構造を取る。</param>
+    /// <param name="X">部分木。B+木である。</param>
+    /// <param name="at">at個の指定。</param>
+    /// <returns></returns>
+    private static (Node? L, Node? R) SplitAux(Node? X, int at)
+    {
+        //corner case
+        if (X == null || at == 0) return (null, X);
+        else if (at == X.size) return (X, null);
+#if DEBUG
+        if (at < 0 || at > X.size) throw new IndexOutOfRangeException();
+#endif
+        if (X is Leaf XL)
+            return at == 0 ? (null, XL) : (XL, null);
+        var XI = (X as InternalNode)!;
+        var pos = XI.LocateSubtreeAt(at, out at);
+        var (L1, R1) = SplitAux(XI[pos], at);
+        // either of L,R is null \implies pos != 0,X.nc-1 resp. (\because denial is fallen above.)
+        // so, if pos==0,X.nc-1, then L,R != null respectively.
+        // replace and augment X[pos] to L and R, then return (X[..pos]+L, R+X[pos+1..]) (noted in X before entry.)
+        //TODO: ここの効率化を図る。XIL,XIRの分割の部分だけでも何とか
+        if (pos == 0)
+        {
+            var XIR = new InternalNode(XI.height - 1, XI.children, 1, XI.nc - 1);
+            return (L1, Merge(R1, XIR));
+        }
+        else if (pos == XI.nc - 1)
+        {
+            var XIL = new InternalNode(XI.height - 1, XI.children, 0, pos);
+            return (Merge(XIL, L1), R1);
+        }
+        else
+        {
+            var XIL = new InternalNode(XI.height - 1, XI.children, 0, pos);
+            var XIR = new InternalNode(XI.height - 1, XI.children, pos + 1, XI.nc - (pos + 1));
+            return (Merge(XIL, L1), Merge(R1, XIR));
+        }
+    }
+    /// <summary>
+    /// L,Rの毛抜き。
+    /// </summary>
+    /// <param name="L"></param>
+    /// <param name="X"></param>
+    /// <param name="at"></param>
+    /// <returns></returns>
+    private static (Node? L, Node? R) SplitAdjust(Node? X, int at)
+    {
+        var (L, R) = SplitAux(X, at);
+        while (L != null && L is InternalNode LI && LI.nc == 1) L = LI[0];
+        while (R != null && R is InternalNode RI && RI.nc == 1) R = RI[0];
+        return (L, R);
+    }
+    /// <summary>
+    /// 木の末尾range個の要素を左(range-count)個と右count個に分割し、それらの組を入れ替えた上で元の木の末尾に戻す処理。
+    /// </summary>
+    /// <param name="range"></param>
+    /// <param name="count"></param>
+    internal void Roll(int range, int count)
+    {
+        if (range == 0) return;
+        var (Base, Effect) = SplitAdjust(root, this.size - range);
+        var (Float, Sink) = SplitAdjust(Effect, Effect!.size - count);
+        var K = Merge(Sink, Float);
+        root = Merge(Base, K);
+    }
+    #endregion
+    #region Debug
     /// <summary>
     /// B木の内容を表す文字列を返す（toStringの下請け）。
     /// </summary>
@@ -888,8 +969,35 @@ class BTree<T>
         }
         else
         {
-            return toStringAux(root);
+            return "\t" + this.GetHashCode() + "\n" + toStringAux(root);
         }
+    }
+
+    /// <summary>
+    /// B+木の条件が満たされているかを判定する。
+    /// </summary>
+    /// <returns></returns>
+    public bool isBPlusTree()
+    {
+        if (root == null) return true;
+        if (root is Leaf) return true;
+        var XI = (InternalNode)root;
+        if (XI.nc < 2 || XI.nc > CHILD_CAPACITY)
+            return false;
+        return XI.children[0..XI.nc].All(c => isPartBPlusTree(c) && c!.height == root.height - 1);
+    }
+    /// <summary>
+    /// X以下の部分木がB+木の部分木の条件を満たしているかを判定する。
+    /// </summary>
+    /// <param name="X"></param>
+    /// <returns></returns>
+    private static bool isPartBPlusTree(Node? X)
+    {
+        if (X == null || X is Leaf) return true;
+        var XI = (InternalNode)X;
+        if (XI.nc < HALF_CHILD || XI.nc > CHILD_CAPACITY)
+            return false;
+        return XI.children[0..XI.nc].All(c => isPartBPlusTree(c) && c!.height == X.height - 1);
     }
     #endregion
 }
