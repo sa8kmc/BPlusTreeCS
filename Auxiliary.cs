@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 public static class Extend
 {
+    public static int Ceil(this int a, int b) => (a + b - 1) / b;
     public static int lowerBound<T>(this T[] X, T key) where T : IComparable<T>
     {
         var N = X.Length;

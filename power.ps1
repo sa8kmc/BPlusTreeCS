@@ -2,7 +2,7 @@
 # 木の階数パラメータによる性能の変化を、一定の要素数ごとに調べたい。
 # 
 $rankSrc = './BTree.cs'
-$DeclareRank = 'public static readonly int CHILD_CAPACITY = '
+$DeclareRank = 'int CHILD_CAPACITY = '
 $caseSrc = './Program.cs'
 $DeclareCase = 'var N = '
 $resultPool = './Comparison.csv'
