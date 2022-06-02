@@ -199,10 +199,10 @@ class BTree<T>
         for (int i = 0; i < A.Length; i++)
             Level0[i] = new Leaf(A[i]);
         InternalNode[] Level;
+        var height = 1;
         while (Level0.Length > 1)
         {
             Level = new InternalNode[Level0.Length.Ceil(recom)];
-            var height = 1;
             //ノード達の親を作成
             int j = 0;
             for (j = 0; recom * (j + 1) < Level0.Length; j++)
@@ -219,6 +219,7 @@ class BTree<T>
                 Shift(Level[^2], Level[^1], tobe - recom);
             }
             Level0 = Level;
+            height++;
         }
         return Level0[0];
     }
@@ -984,7 +985,7 @@ class BTree<T>
         var XI = (InternalNode)root;
         if (XI.nc < 2 || XI.nc > CHILD_CAPACITY)
             return false;
-        return XI.children[0..XI.nc].All(c => isPartBPlusTree(c) && c!.height == root.height - 1);
+        return XI.children[0..XI.nc].All(c => c != null && isPartBPlusTree(c) && c!.height == root.height - 1);
     }
     /// <summary>
     /// X以下の部分木がB+木の部分木の条件を満たしているかを判定する。
@@ -997,7 +998,7 @@ class BTree<T>
         var XI = (InternalNode)X;
         if (XI.nc < HALF_CHILD || XI.nc > CHILD_CAPACITY)
             return false;
-        return XI.children[0..XI.nc].All(c => isPartBPlusTree(c) && c!.height == X.height - 1);
+        return XI.children[0..XI.nc].All(c => c != null && isPartBPlusTree(c) && c.height == X.height - 1);
     }
     #endregion
 }
