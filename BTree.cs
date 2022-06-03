@@ -24,7 +24,7 @@ class BTree<T>
     /// <summary>
     /// B+木の階数。
     /// </summary>
-    public static readonly int CAPACITY = 4;
+    public static readonly int CAPACITY = 8;
     /// <summary 節のクラス定義 />
     #region NodeClassDefinition
     ///内部節、葉、仮想節を総称した節のクラス
@@ -49,6 +49,11 @@ class BTree<T>
             count = new int[CAPACITY];
             height = 2;
         }
+        /// <summary>
+        /// Aの各要素を子とした内部節を生成する。
+        /// </summary>
+        /// <param name="heightA">Aの各要素の高さ。returnsのよりちょうど1低い。</param>
+        /// <param name="A">子の節の配列。</param>
         internal InternalNode(int heightA, Node?[] A)
         {
             serial = serialNumber++;
@@ -61,6 +66,13 @@ class BTree<T>
             for (int i = 1; i < A.Length; i++)
                 count[i] = count[i - 1] + (A[i]?.size ?? 0);
         }
+        /// <summary>
+        /// A[start..(start+len)]の各要素を子とした内部節を生成する。
+        /// </summary>
+        /// <param name="heightA"></param>
+        /// <param name="A"></param>
+        /// <param name="start">Aからの抽出の開始位置。</param>
+        /// <param name="len">Aから抽出する要素の個数。</param>
         internal InternalNode(int heightA, Node?[] A, int start, int len)
         {
             serial = serialNumber++;
@@ -72,6 +84,32 @@ class BTree<T>
             count[0] = A[start]?.size ?? 0;
             for (int i = 1; i < len; i++)
                 count[i] = count[i - 1] + (A[start + i]?.size ?? 0);
+        }
+        /// <summary>
+        /// カウントがa prioriに分かっている場合のコンストラクタ。
+        /// </summary>
+        /// <param name="heightA"></param>
+        /// <param name="A"></param>
+        /// <param name="C">Aの各要素のサイズの累積和。C[0]==A[0].sizeに注意。</param>
+        /// <param name="start"></param>
+        /// <param name="len"></param>
+        internal InternalNode(int heightA, Node?[] A, int[] C, int start, int len)
+        {
+            serial = serialNumber++;
+            children = new Node?[CAPACITY];
+            count = new int[CAPACITY];
+            this.height = heightA + 1;
+            nc = len;
+            Array.Copy(A, start, children, 0, len);
+            Array.Copy(C, start, count, 0, len);
+            if (start != 0)
+            {
+                //Cは、this.countにとってはA[0..start]を余計にカウントしているので、
+                //this.countからC[start-1]==Sum(A[0..start].Select(x=>x.size))を減算。
+                var frontOver = count[start - 1];
+                for (int i = 0; i < len; i++)
+                    count[i] -= frontOver;
+            }
         }
 
         internal override int size { get => count[nc - 1]; }
@@ -400,7 +438,6 @@ class BTree<T>
                 node.nc++;
                 for (int i = pos + 2; i < node.nc; i++)
                     node.count[i] += dn;
-                // Console.WriteLine("\t->" + string.Join(',', node.count[0..node.nChildren]));
                 return null;
             }
             else
@@ -691,7 +728,7 @@ class BTree<T>
     {
         // L,Rがともに葉であるとき、新しく連結したノードを根とすればよい。
         // o/w: L,Rが両方とも根であるとき、returnsのノードもまた根である。
-        // o/w: L,Rのいずれかが真部分木の節であるため、LI.nChildren+RI.nChildren\in[Ceil(CAP/2),2*CAP]
+        // o/w: L,Rのいずれかが真部分木の節であるため、LI.nc+RI.nc\in[Ceil(CAP/2),2*CAP]
         if (L == null) { Hot = null; return R; }
         else if (R == null) { Hot = null; return L; }
         if (L is Leaf l && R is Leaf r)
@@ -726,7 +763,7 @@ class BTree<T>
             {
                 var R0 = new InternalNode();
                 R0.height = LI.height;
-                var mnc = LI.nc - HALF_CAPACITY; // LI.nChildren==CHILD_CAPACITY
+                var mnc = LI.nc - HALF_CAPACITY; // LI.nc==CAPACITY
                 // LIの末尾をR0へコピー
                 Array.Copy(LI.children, HALF_CAPACITY, R0.children, 0, mnc);
                 Array.Copy(LI.count, HALF_CAPACITY, R0.count, 0, mnc);
@@ -788,7 +825,7 @@ class BTree<T>
                 Array.Copy(RI.children, HALF_CAPACITY - 1, R0.children, 0, CAPACITY - (HALF_CAPACITY - 1));
                 Array.Copy(RI.children, 1, RI.children, 2, HALF_CAPACITY - 2);
                 RI[1] = R1;
-                // 子のnChildrenを更新する
+                // 子のncを更新する
                 RI.nc = HALF_CAPACITY;
                 R0.nc = (CAPACITY + 1) - HALF_CAPACITY;
                 //カウントを更新
@@ -825,7 +862,7 @@ class BTree<T>
             {
                 // 追加の余地がないので、節nodeを2つに分割しなければならない
                 // remark: lnc+rnc>=CAP+1>=2*((CAP+1)/2)==2*Ceil(CAP÷2)
-                var half = (lnc + rnc + 1) / 2; // LI.nChildren on exit
+                var half = (lnc + rnc + 1) / 2; // LI.nc on exit
                 Shift(LI, RI, half - lnc);
                 Hot = RI;
                 return LI;
@@ -877,7 +914,6 @@ class BTree<T>
         // either of L,R is null \implies pos != 0,X.nc-1 resp. (\because denial is fallen above.)
         // so, if pos==0,X.nc-1, then L,R != null respectively.
         // replace and augment X[pos] to L and R, then return (X[..pos]+L, R+X[pos+1..]) (noted in X before entry.)
-        //TODO: ここの効率化を図る。XIL,XIRの分割の部分だけでも何とか
         if (pos == 0)
         {
             var XIR = new InternalNode(XI.height - 1, XI.children, 1, XI.nc - 1);
@@ -890,13 +926,13 @@ class BTree<T>
         }
         else
         {
-            var XIL = new InternalNode(XI.height - 1, XI.children, 0, pos);
-            var XIR = new InternalNode(XI.height - 1, XI.children, pos + 1, XI.nc - (pos + 1));
+            var XIL = new InternalNode(XI.height - 1, XI.children, XI.count, 0, pos);
+            var XIR = new InternalNode(XI.height - 1, XI.children, XI.count, pos + 1, XI.nc - (pos + 1));
             return (Merge(XIL, L1), Merge(R1, XIR));
         }
     }
     /// <summary>
-    /// L,Rの毛抜き。
+    /// L,Rを整形：先頭が唯1個の子を持つ内部節の鎖であるときは、それを除去した部分木を出力する。
     /// </summary>
     /// <param name="L"></param>
     /// <param name="X"></param>
@@ -942,7 +978,7 @@ class BTree<T>
             // 内部節である
             InternalNode n = (InternalNode)p;
             var s = "";
-            s += $"Node #{n.serial} ({n.nc} children, height {n.height}): "; //n.nChildren>=2
+            s += $"Node #{n.serial} ({n.nc} children, height {n.height}): "; //n.nc>=2
             for (int i = 0; i < n.nc; i++)
             {
                 s += $"#{n[i]!.serial} [{n.count[i]}] ";
