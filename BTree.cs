@@ -24,13 +24,15 @@ class BTree<T>
     /// <summary>
     /// B+木の階数。
     /// </summary>
-    public static readonly int CAPACITY = 7;
+    public static readonly int CAPACITY = 256;
     /// <summary 節のクラス定義 />
     #region NodeClassDefinition
     ///内部節、葉、仮想節を総称した節のクラス
     internal abstract class Node
     {
+#if DEBUG
         internal long serial;
+#endif
         internal abstract int size { get; }
         internal int height { get; set; }
     }
@@ -43,7 +45,9 @@ class BTree<T>
         ///constructor: 空の内部節を生成する
         internal InternalNode()
         {
+#if DEBUG
             serial = serialNumber++;
+#endif
             nc = 0;
             children = new Node?[CAPACITY];
             count = new int[CAPACITY];
@@ -56,7 +60,9 @@ class BTree<T>
         /// <param name="A">子の節の配列。</param>
         internal InternalNode(int heightA, Node?[] A)
         {
+#if DEBUG
             serial = serialNumber++;
+#endif
             children = new Node?[CAPACITY];
             count = new int[CAPACITY];
             this.height = heightA + 1;
@@ -75,7 +81,9 @@ class BTree<T>
         /// <param name="len">Aから抽出する要素の個数。</param>
         internal InternalNode(int heightA, Node?[] A, int start, int len)
         {
+#if DEBUG
             serial = serialNumber++;
+#endif
             children = new Node?[CAPACITY];
             count = new int[CAPACITY];
             this.height = heightA + 1;
@@ -95,7 +103,9 @@ class BTree<T>
         /// <param name="len"></param>
         internal InternalNode(int heightA, Node?[] A, int[] C, int start, int len)
         {
+#if DEBUG
             serial = serialNumber++;
+#endif
             children = new Node?[CAPACITY];
             count = new int[CAPACITY];
             this.height = heightA + 1;
@@ -188,7 +198,9 @@ class BTree<T>
         internal Leaf(T data)
         {
             height = 1;
+#if DEBUG
             serial = serialNumber++;
+#endif
             this.data = data;
         }
     }
@@ -200,7 +212,9 @@ class BTree<T>
     /// <value>nullであれば空。Leaf型であれば唯1個の要素からなる木を表す。
     /// さもなくばInternal型で、2個以上の要素を持つ木を表す。</value>
     internal Node? root { get; private set; }
+#if DEBUG
     private static long serialNumber = 0;
+#endif
     private static readonly int HALF_CAPACITY = (CAPACITY + 1) / 2;
 
     private Leaf? currentLeaf { get; set; }
@@ -893,8 +907,8 @@ class BTree<T>
     /// <summary>
     /// 部分木Xを左からat個で切断する。
     /// </summary>
-    /// <param name="L">左木。ただし、B+木の根が唯1個の子を持つ節の列(0個以上)の末尾に付いているような構造を取る。</param>
-    /// <param name="R">左木。ただし、B+木の根が唯1個の子を持つ節の列(0個以上)の末尾に付いているような構造を取る。</param>
+    /// <param name="L">左木。</param>
+    /// <param name="R">左木。</param>
     /// <param name="X">部分木。B+木である。</param>
     /// <param name="at">at個の指定。</param>
     /// <returns></returns>
@@ -971,17 +985,29 @@ class BTree<T>
         if (p is Leaf l)
         {
             // 葉である
+#if DEBUG
             return $"Leaf #{l.serial} data={l.data}";
+#else
+            return $"Leaf #{l.GetHashCode()} data={l.data}";
+#endif
         }
         else
         {
             // 内部節である
             InternalNode n = (InternalNode)p;
             var s = "";
+#if DEBUG
             s += $"Node #{n.serial} ({n.nc} children, height {n.height}): "; //n.nc>=2
+#else
+            s += $"Node #{n.GetHashCode()} ({n.nc} children, height {n.height}): "; //n.nc>=2
+#endif
             for (int i = 0; i < n.nc; i++)
             {
+#if DEBUG
                 s += $"#{n[i]!.serial} [{n.count[i]}] ";
+#else
+                s += $"#{n[i]!.GetHashCode()} [{n.count[i]}] ";
+#endif
             }
             s += $"\n";
             for (int i = 0; i < n.nc; i++)

@@ -2,7 +2,7 @@
 # 木の階数パラメータによる性能の変化を、一定の要素数ごとに調べたい。
 # 
 $rankSrc = './BTree.cs'
-$DeclareRank = 'int CHILD_CAPACITY = '
+$DeclareRank = 'int CAPACITY = '
 $caseSrc = './Program.cs'
 $DeclareCase = 'var N = '
 $resultPool = './Comparison.csv'
@@ -11,7 +11,7 @@ if (Test-Path $resultPool) {
 }
 Set-Content $resultPool -Encoding Unicode -Value ("N,capacity,samples,"`
         + "insertion Ave[ms],insertion unbiased SD[ms],deletion Ave[ms],deletion unbiased SD[ms]")
-for ($j = 8; $j -le 13; $j++) {
+for ($j = 6; $j -le 13; $j++) {
     for ($i = 2; $i -le 10; $i++) {
         $rank = [math]::pow(2, $i)
         $case = [math]::Floor([math]::pow(10, $j / 2.0))
@@ -28,4 +28,4 @@ for ($j = 8; $j -le 13; $j++) {
 | Set-Content $caseSrc -Encoding UTF8
 
 # 処理が終わったらスリープする
-Add-Type -Assembly System.Windows.Forms; [System.Windows.Forms.Application]::SetSuspendState('Suspend', $false, $false);
+# Add-Type -Assembly System.Windows.Forms; [System.Windows.Forms.Application]::SetSuspendState('Suspend', $false, $false);

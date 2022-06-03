@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
 
-var N = 100;
+var N = 3162277;
 Program.Benchmark(N);
 
 
