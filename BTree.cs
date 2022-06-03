@@ -24,7 +24,7 @@ class BTree<T>
     /// <summary>
     /// B+木の階数。
     /// </summary>
-    public static readonly int CAPACITY = 8;
+    public static readonly int CAPACITY = 7;
     /// <summary 節のクラス定義 />
     #region NodeClassDefinition
     ///内部節、葉、仮想節を総称した節のクラス
@@ -916,12 +916,12 @@ class BTree<T>
         // replace and augment X[pos] to L and R, then return (X[..pos]+L, R+X[pos+1..]) (noted in X before entry.)
         if (pos == 0)
         {
-            var XIR = new InternalNode(XI.height - 1, XI.children, 1, XI.nc - 1);
+            var XIR = new InternalNode(XI.height - 1, XI.children, XI.count, 1, XI.nc - 1);
             return (L1, Merge(R1, XIR));
         }
         else if (pos == XI.nc - 1)
         {
-            var XIL = new InternalNode(XI.height - 1, XI.children, 0, pos);
+            var XIL = new InternalNode(XI.height - 1, XI.children, XI.count, 0, pos);
             return (Merge(XIL, L1), R1);
         }
         else
