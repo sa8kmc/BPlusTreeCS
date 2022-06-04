@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Runtime.InteropServices;
-/*
+﻿/*
  * 参考： 近藤嘉雪. 『定本Javaプログラマのためのアルゴリズムとデータ構造』. ソフトバンククリエイティブ, 2011.
  */
 /// <summary>
@@ -24,8 +17,7 @@ class BTree<T>
     /// <summary>
     /// B+木の階数。
     /// </summary>
-    public static readonly int CAPACITY = 256;
-    /// <summary 節のクラス定義 />
+    public static readonly int CAPACITY = 128;
     #region NodeClassDefinition
     ///内部節、葉、仮想節を総称した節のクラス
     internal abstract class Node
@@ -193,7 +185,6 @@ class BTree<T>
         /// <summary>
         /// コンスラクタ：葉を生成する
         /// </summary>
-        /// <param name="key">この葉がもつキー</param>
         /// <param name="data">この葉がもつデータ</param>
         internal Leaf(T data)
         {
@@ -211,6 +202,7 @@ class BTree<T>
     /// </summary>
     /// <value>nullであれば空。Leaf型であれば唯1個の要素からなる木を表す。
     /// さもなくばInternal型で、2個以上の要素を持つ木を表す。</value>
+    #region PropertiesAndFields
     internal Node? root { get; private set; }
 #if DEBUG
     private static long serialNumber = 0;
@@ -228,7 +220,8 @@ class BTree<T>
         }
     }
     public int size { get => root?.size ?? 0; }
-
+    #endregion
+    #region ConstructorAndBuilder
     public BTree()
     {
         root = null;
@@ -253,9 +246,9 @@ class BTree<T>
         var height = 1;
         while (Level0.Length > 1)
         {
-            Level = new InternalNode[Level0.Length.Ceil(CAPACITY)];
+            var LN = (Level0.Length + CAPACITY - 1) / CAPACITY;
+            Level = new InternalNode[LN];
             //ノード達の親を作成
-            var LN = Level.Length;
             if (LN == 1)
                 Level[0] = new InternalNode(height, Level0);
             else
@@ -273,12 +266,8 @@ class BTree<T>
         }
         return Level0[0];
     }
-    private static void UpdateSizeNaive(InternalNode I, int from)
-    {
-        if (from == 0) I.count[from] = I[0]!.size;
-        for (int i = Math.Max(from, 1); i < I.nc; i++)
-            I.count[i] = I.count[i - 1] + I[i]!.size;
-    }
+
+    #endregion
     #region Indexer
     /// <summary>
     /// B木から番号iを探索する。キーkeyをもつ葉が見つかれば、それをcurrentLeafフィールドにセットする。
@@ -325,6 +314,7 @@ class BTree<T>
         }
     }
     #endregion
+    #region AuxiliaryModifications
     /// <summary>
     /// xが正のときはBの先頭x個をAの末尾に移動、負のときはその逆、0のときは何もしない。
     /// </summary>
@@ -380,6 +370,18 @@ class BTree<T>
             B.nc += x;
         }
     }
+    /// <summary>
+    /// I.count[from..I.nc]を、各要素のsizeを確認することによって更新する。
+    /// </summary>
+    /// <param name="I">内部節。</param>
+    /// <param name="from">countの更新を始める番号。</param>
+    private static void UpdateSizeNaive(InternalNode I, int from)
+    {
+        if (from == 0) I.count[from] = I[0]!.size;
+        for (int i = Math.Max(from, 1); i < I.nc; i++)
+            I.count[i] = I.count[i - 1] + I[i]!.size;
+    }
+    #endregion
     #region Insertion
     /// <summary>
     /// 指定した節に対して、キーkeyをもつ要素を挿入する（insertの下請け）。
@@ -510,7 +512,6 @@ class BTree<T>
             }
         }
     }
-
     /// <summary>
     /// B木に要素を挿入する。
     /// </summary>
@@ -556,7 +557,6 @@ class BTree<T>
             return true;
         }
     }
-
     #endregion
     #region Deletion
     /// <summary>
@@ -589,7 +589,6 @@ class BTree<T>
             return false;
         }
     }
-
     // deleteAuxメソッドの戻り値
     // 値の意味は、deleteAuxメソッドのコメントを参照のこと。
     private enum DeleteAuxResult
@@ -599,7 +598,6 @@ class BTree<T>
         OK_NEED_REORG,
         NOT_FOUND
     }
-
     /// <summary>
     /// 節thisNodeから、キーkeyをもつ要素を削除する（deleteの下請け）。
     /// </summary>
@@ -611,12 +609,12 @@ class BTree<T>
     /// ‣OK_NEED_REORG:削除に成功。thisNodeの子が少なく（HALF_CHILD以下）なったので、再編成が必要になった
     /// ‣NOT_FOUND: 削除に失敗。キーkeyをもつ子は見つからなかった
     /// </returns>
-    private static DeleteAuxResult DeleteAux(Node thisNode, int key)
+    private DeleteAuxResult DeleteAux(Node thisNode, int key)
     {
         if (thisNode is Leaf leaf)
         {
             // この節は葉である
-
+            currentLeaf = leaf;
             // この葉のキーとkeyが等しければ、削除する
             return DeleteAuxResult.OK_REMOVED;
         }
@@ -730,7 +728,7 @@ class BTree<T>
         }
     }
     #endregion
-    #region MergeSplit
+    #region MergeAndSplit
     /// <summary>
     /// 2つのB+木の部分木を連結する。
     /// </summary>
@@ -900,10 +898,13 @@ class BTree<T>
         return newNode;
     }
     public void PushBack(T data) => root = Merge(root, new Leaf(data));
-    public void MergeRight(Node G) => root = Merge(this.root, G);
+    private void MergeRight(Node G) => root = Merge(this.root, G);
     public void PushFront(T data) => root = Merge(new Leaf(data), root);
-    #endregion
-    #region Split
+    public T? PopBack()
+    {
+        DeleteAt(size - 1);
+        return currentLeaf == null ? default(T) : currentLeaf.data;
+    }
     /// <summary>
     /// 部分木Xを左からat個で切断する。
     /// </summary>
@@ -960,14 +961,17 @@ class BTree<T>
         return (L, R);
     }
     /// <summary>
-    /// 木の末尾range個の要素を左(range-count)個と右count個に分割し、それらの組を入れ替えた上で元の木の末尾に戻す処理。
+    /// 木の末尾depth個の要素を左(depth-count)個と右count個に分割し、それらの組を入れ替えた上で元の木の末尾に戻す。
+    /// ただし、countの剰余操作はこのサブルーチン内で行う。
     /// </summary>
-    /// <param name="range"></param>
+    /// <param name="depth"></param>
     /// <param name="count"></param>
-    internal void Roll(int range, int count)
+    internal void Roll(int depth, int count)
     {
-        if (range == 0) return;
-        var (Base, Effect) = SplitAdjust(root, this.size - range);
+        if (depth == 0 || depth > size) return;
+        count %= depth;
+        if (count < 0) count += depth;
+        var (Base, Effect) = SplitAdjust(root, this.size - depth);
         var (Float, Sink) = SplitAdjust(Effect, Effect!.size - count);
         var K = Merge(Sink, Float);
         root = Merge(Base, K);
@@ -1017,7 +1021,6 @@ class BTree<T>
             return s;
         }
     }
-
     /// <summary>
     /// B木の内容を表す文字列を返す（実際の処理はtoStringAuxメソッドが行う）。
     /// </summary>
@@ -1033,7 +1036,6 @@ class BTree<T>
             return "\t" + this.GetHashCode() + "\n" + toStringAux(root);
         }
     }
-
     /// <summary>
     /// B+木の条件が満たされているかを判定する。
     /// </summary>
@@ -1045,7 +1047,7 @@ class BTree<T>
         var XI = (InternalNode)root;
         if (XI.nc < 2 || XI.nc > CAPACITY)
             return false;
-        return XI.children[0..XI.nc].All(c => c != null && isPartBPlusTree(c) && c!.height == root.height - 1);
+        return XI.children[0..XI.nc].All(c => c != null && c!.height == totalHeight - 1 && isPartBPlusTree(c));
     }
     /// <summary>
     /// X以下の部分木がB+木の部分木の条件を満たしているかを判定する。
@@ -1058,7 +1060,7 @@ class BTree<T>
         var XI = (InternalNode)X;
         if (XI.nc < HALF_CAPACITY || XI.nc > CAPACITY)
             return false;
-        return XI.children[0..XI.nc].All(c => c != null && isPartBPlusTree(c) && c.height == X.height - 1);
+        return XI.children[0..XI.nc].All(c => c != null && c.height == X.height - 1 && isPartBPlusTree(c));
     }
     #endregion
 }

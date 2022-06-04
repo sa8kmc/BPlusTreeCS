@@ -1,6 +1,6 @@
 #### $\mathtt{lower\_ bound},\,\mathtt{upper\_ bound}$の使い方
 
-全順序集合$(X,\le)$について、$X$の有限部分集合全体の集合$\mathfrak{X}$の元$M$をとる。
+全順序集合$(X,\le)$について、$X$の有限部分集合全体の集合を$\mathfrak{X}$とし、その元$M$(即ち、$M$は$X$の任意の有限部分集合)をとる。
 $N:=\# M$とし、$M$の各要素を$m_0,\dots,m_{N-1}\,(m_0\le m_1\le\dots\le m_{N-1})$で表す。
 演算子$\mathtt{lower\_ bound},\,\mathtt{upper\_ bound}: \mathfrak{X}\times X\to \mathbb{N}_{\ge 0}$を、
 $$
