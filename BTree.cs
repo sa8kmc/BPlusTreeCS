@@ -2,24 +2,27 @@
  * 参考： 近藤嘉雪. 『定本Javaプログラマのためのアルゴリズムとデータ構造』. ソフトバンククリエイティブ, 2011.
  */
 /// <summary>
-/// 列としてのB+木。平衡性により任意箇所への挿入削除検索がO(log n)ででき、
-/// 多分木性により現実計算において効率的なデータ処理が可能となっている(定数倍の改善)。
+/// B+木による列の実装。平衡性により任意箇所への挿入削除検索がO(log n)ででき、
+/// 多分木性により参照の局所性を考慮した効率的なデータ処理が可能となっている(定数倍の改善)。
 /// </summary>
-/// <typeparam name="T">格納するデータの型。</typeparam>
+/// <typeparam name="T">格納するデータの型</typeparam>
 class BTree<T>
 {
-    #region Comment
-    //Notation:
-    //a[i..j]={a[i],...,a[j-1]}
-    //a[i...j]={a[i],...,a[j]}
-    //a[i:j]={a[i],...,a[i+j-1]}
+    #region MetaComment
+    // コード内のコメントに用いる範囲記法
+    //  a[i..j]={a[i],...,a[j-1]}
+    //  a[i...j]={a[i],...,a[j]}
+    //  a[i:j]={a[i],...,a[i+j-1]}
+    // 以下誤解なき場合、節とその節が根である部分木とを同一視する。
     #endregion
     /// <summary>
-    /// B+木の階数。
+    /// B+木の階数
     /// </summary>
     public static readonly int CAPACITY = 128;
     #region NodeClassDefinition
-    ///内部節、葉、仮想節を総称した節のクラス
+    /// <summary>
+    /// 内部節、葉、仮想節を総称した節の抽象クラス
+    /// </summary>
     internal abstract class Node
     {
 #if DEBUG
@@ -28,7 +31,9 @@ class BTree<T>
         internal abstract int size { get; }
         internal int height { get; set; }
     }
-    ///内部節
+    /// <summary>
+    /// 内部節のクラス
+    /// </summary>
     internal class InternalNode : Node
     {
         internal int nc;
@@ -207,9 +212,18 @@ class BTree<T>
 #if DEBUG
     private static long serialNumber = 0;
 #endif
+    /// <summary>
+    /// 内部節が持つ子節数の下限
+    /// </summary>
     private static readonly int HALF_CAPACITY = (CAPACITY + 1) / 2;
-
+    /// <summary>
+    /// 探索により指定された節を参照するフィールド
+    /// </summary>
+    /// <value></value>
     private Leaf? currentLeaf { get; set; }
+    /// <summary>
+    /// 木全体の高さ
+    /// </summary>
     public int totalHeight
     {
         get
@@ -219,17 +233,32 @@ class BTree<T>
             else return (root as InternalNode)!.height;
         }
     }
+    /// <summary>
+    /// 木全体のデータ数(=葉の数)
+    /// </summary>
+    /// <value></value>
     public int size { get => root?.size ?? 0; }
     #endregion
     #region ConstructorAndBuilder
+    /// <summary>
+    /// 空のB+木。
+    /// </summary>
     public BTree()
     {
         root = null;
     }
+    /// <summary>
+    /// 配列から生成されるB+木。
+    /// </summary>
+    /// <param name="A">データの配列</param>
     public BTree(T[] A)
     {
         root = BuildFrom(A);
     }
+    /// <summary>
+    /// ある節を根とするB+木。
+    /// </summary>
+    /// <param name="X">根</param>
     public BTree(Node? X)
     {
         root = X;
@@ -270,13 +299,13 @@ class BTree<T>
     #endregion
     #region Indexer
     /// <summary>
-    /// B木から番号iを探索する。キーkeyをもつ葉が見つかれば、それをcurrentLeafフィールドにセットする。
-    /// このメソッドは探索の成否を示す情報だけを返す。
-    /// 実際にキーkeyに対応する値を得るには、searchに成功した後でgetDataメソッドを呼び出すこと。
-    /// また、setDataメソッドを呼び出せば、キーkeyに対応する値を変えることができる。
+    /// B+木から番号iの葉を探索する。番号iの葉が見つかれば、それをcurrentLeafフィールドにセットする。
+    /// このメソッド自体は探索の成否を示すbool型情報だけを返す。
+    /// 実際に番号iに対応する値を得るには、searchに成功した後でgetDataメソッドを呼び出すこと。
+    /// また、setDataメソッドにより、番号iに対応する値を変えることができる。
     /// </summary>
     /// <param name="i">探索すべき番号</param>
-    /// <returns>キーkeyをもつ葉が見つかればtrue、見つからなければfalseを返す。</returns>
+    /// <returns>番号iの葉が見つかればtrue、見つからなければfalseを返す。</returns>
     public bool SearchAt(int i)
     {
         currentLeaf = null;
@@ -298,10 +327,10 @@ class BTree<T>
         else return currentLeaf.data;
     }
     /// <summary>
-    /// 最後に成功したsearchメソッドが見つけた要素がもつデータをセットする。
+    /// 最後に成功したsearchメソッドが見つけた要素のデータを更新する。
     /// </summary>
-    /// <param name="data">セットすべき値</param>
-    /// <returns>セットに成功したらtrue、
+    /// <param name="data">更新すべき値</param>
+    /// <returns>更新に成功したらtrue、
     /// 直前にsearch以外（insert、delete）が実行されていた場合、および直前のsearchが失敗した場合にはfalseを返す。</returns>
     public bool SetData(T data)
     {
@@ -384,14 +413,14 @@ class BTree<T>
     #endregion
     #region Insertion
     /// <summary>
-    /// 指定した節に対して、キーkeyをもつ要素を挿入する（insertの下請け）。
+    /// 部分木pnode[nth]のkey番目に要素dataを挿入する（insertの下請け）。
     /// </summary>
-    /// <param name="pnode">内部節pnodeのnth番目の子に対して挿入を行う。pnodeがnullの場合は根が対象となる。</param>
+    /// <param name="pnode">内部節pnodeのnth番目の子に対して挿入を行う。pnodeがnullの場合はrootが対象となる。</param>
     /// <param name="nth">内部節pnodeのnth番目の子に対して挿入を行う。</param>
     /// <param name="key">挿入する要素の番号</param>
     /// <param name="data">挿入する要素のデータ</param>
     /// <returns>結果を表すInsertAuxResult型のオブジェクト。
-    /// キーkeyがすでに登録済みならnull。
+    /// 番号iがすでに登録済みならnull。
     /// return.newNodeは、操作により発生・伝播する特異な節を表す。
     /// 特異な節が無くなれば、return.newNode==null.</returns>
     private Node? InsertAux(InternalNode? pnode, int nth, int key, T data)
@@ -530,7 +559,7 @@ class BTree<T>
         {
             // 木が空でない場合には、insertAuxメソッドを呼び出して、要素の挿入を行う
             var result = InsertAux(null, -1, at, data);
-            // もし結果がnullなら、すでにキーkeyは登録されているので、そのままfalseを返す
+            // もし結果がnullなら、すでに番号iは登録されているので、そのままfalseを返す
             if (result == null)
                 return false;
 
@@ -589,8 +618,9 @@ class BTree<T>
             return false;
         }
     }
-    // deleteAuxメソッドの戻り値
-    // 値の意味は、deleteAuxメソッドのコメントを参照のこと。
+    /// <summary>
+    /// DeleteAuxメソッドの返り値。 値の意味は、DeleteAuxメソッドのコメントを参照。
+    /// </summary>
     private enum DeleteAuxResult
     {
         OK,
@@ -599,7 +629,7 @@ class BTree<T>
         NOT_FOUND
     }
     /// <summary>
-    /// 節thisNodeから、キーkeyをもつ要素を削除する（deleteの下請け）。
+    /// 部分木thisNodeから、番号iをもつ要素を削除する（Deleteの下請け）。
     /// </summary>
     /// <param name="thisNode">この節（またはその部分木）から要素を削除する。</param>
     /// <param name="key">削除する要素のキー</param>
@@ -607,7 +637,7 @@ class BTree<T>
     /// ‣OK: 削除に成功。thisNodeには何の変化もない
     /// ‣OK_REMOVED: 削除に成功。thisNodeそのものが削除された
     /// ‣OK_NEED_REORG:削除に成功。thisNodeの子が少なく（HALF_CHILD以下）なったので、再編成が必要になった
-    /// ‣NOT_FOUND: 削除に失敗。キーkeyをもつ子は見つからなかった
+    /// ‣NOT_FOUND: 削除に失敗。番号iをもつ子は見つからなかった
     /// </returns>
     private DeleteAuxResult DeleteAux(Node thisNode, int key)
     {
@@ -703,7 +733,7 @@ class BTree<T>
             return false;
         else // 木が空でない場合
         {
-            // deleteAuxメソッドを呼び出して、キーkeyをもつ要素を削除する
+            // deleteAuxメソッドを呼び出して、番号iをもつ要素を削除する
             var result = DeleteAux(root, at);
 
             switch (result)

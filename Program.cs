@@ -6,7 +6,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
-using static Extend;
 
-var N = 1000000;
+var N = 100000;
 Program.BenchmarkRoll(N);

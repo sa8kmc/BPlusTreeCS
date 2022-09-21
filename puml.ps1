@@ -1,0 +1,1 @@
+puml-gen . ./puml -dir -ignore Private

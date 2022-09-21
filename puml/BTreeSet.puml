@@ -1,0 +1,54 @@
+@startuml
+class "BTreeSet`1"<T> {
+    + {static} <<readonly>> CHILD_CAPACITY : int = 256
+    root : Node? <<get>> <<set>>
+    + BTreeSet()
+    + totalHeight : int <<get>>
+    + size : int <<get>>
+    + Search(key:long) : bool
+    + GetData() : T?
+    + SetData(data:T) : bool
+    + Insert(key:long, data:T) : bool
+    + Delete(key:long) : bool
+    + <<override>> ToString() : string
+    + SearchAt(i:int) : bool
+}
+abstract class Node {
+    <<internal>> serial : long
+    <<internal>> {abstract} size : int <<get>>
+}
+class InternalNode {
+    <<internal>> nChildren : int
+    <<internal>> children : Node?[]
+    <<internal>> lowest : long[]
+    <<internal>> height : int
+    <<internal>> count : int[]
+    <<internal>> InternalNode()
+    <<internal>> <<override>> size : int <<get>>
+    <<internal>> LocateSubtree(key:long) : int
+    <<internal>> LocateSubtreeAt(x:int, remain:int) : int
+    <<internal>> GetC0(i:int) : int
+    <<internal>> Highlight(at:int) : IEnumerable<string>
+}
+class Leaf {
+    <<internal>> key : long
+    <<internal>> data : T
+    <<internal>> <<override>> size : int <<get>>
+    <<internal>> Leaf(key:long, data:T)
+}
+class InsertAuxResult {
+}
+enum DeleteAuxResult {
+    OK,
+    OK_REMOVED,
+    OK_NEED_REORG,
+    NOT_FOUND,
+}
+"BTreeSet`1" +-- Node
+"BTreeSet`1" +-- InternalNode
+Node <|-- InternalNode
+"BTreeSet`1" +-- Leaf
+Node <|-- Leaf
+"BTreeSet`1" +-- InsertAuxResult
+"BTreeSet`1" +-- DeleteAuxResult
+@enduml

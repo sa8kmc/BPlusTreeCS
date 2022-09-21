@@ -1,0 +1,6 @@
+@startuml
+class Program <<partial>> {
+    + {static} Benchmark(N:int) : void
+    + {static} BenchmarkRoll(N:int) : void
+}
+@enduml

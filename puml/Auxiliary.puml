@@ -1,0 +1,14 @@
+@startuml
+class Extend <<static>> {
+    + {static} Ceil(a:int, b:int) : int
+    + {static} GCD(x:int, y:int) : int
+    + {static} Mod(x:int, y:int) : int
+    + {static} RollPancake(X:List<T>, depth:int, count:int) : void
+    + {static} RollStar(X:List<T>, depth:int, count:int) : void
+    + {static} RollCopy(X:List<T>, depth:int, count:int) : void
+    + {static} lowerBound(X:T[], key:T) : int
+    + {static} upperBound(X:T[], key:T) : int
+    + {static} lowerBound(X:long[], key:long) : int
+    + {static} upperBound(X:long[], key:long) : int
+}
+@enduml

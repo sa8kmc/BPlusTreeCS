@@ -1,0 +1,13 @@
+@startuml
+!include .\\Auxiliary.puml
+!include .\\Benchmark.puml
+!include .\\BTree.puml
+!include .\\BTreeSet.puml
+!include .\\Program.puml
+!include .\\obj\Debug\net60\.NETCoreApp,Version=v6.0.AssemblyAttributes.puml
+!include .\\obj\Debug\net60\BalancingTree.AssemblyInfo.puml
+!include .\\obj\Debug\net60\BalancingTree.GlobalUsings.g.puml
+!include .\\obj\release\net60\.NETCoreApp,Version=v6.0.AssemblyAttributes.puml
+!include .\\obj\release\net60\BalancingTree.AssemblyInfo.puml
+!include .\\obj\release\net60\BalancingTree.GlobalUsings.g.puml
+@enduml

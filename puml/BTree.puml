@@ -1,0 +1,57 @@
+@startuml
+class "BTree`1"<T> {
+    + {static} <<readonly>> CAPACITY : int = 128
+    <<internal>> root : Node? <<get>>
+    + totalHeight : int <<get>>
+    + size : int <<get>>
+    + BTree()
+    + BTree(A:T[])
+    + BTree(X:Node?)
+    <<internal>> BuildFrom(A:T[]) : Node?
+    + SearchAt(i:int) : bool
+    + GetData() : T?
+    + SetData(data:T) : bool
+    + InsertAt(at:int, data:T) : bool
+    + DeleteAt(at:int) : bool
+    + PushBack(data:T) : void
+    + PushFront(data:T) : void
+    + PopBack() : T?
+    <<internal>> Roll(depth:int, count:int) : void
+    + <<override>> ToString() : string
+    + isBPlusTree() : bool
+}
+abstract class Node {
+    <<internal>> {abstract} size : int <<get>>
+    <<internal>> height : int <<get>> <<set>>
+}
+class InternalNode {
+    <<internal>> nc : int
+    <<internal>> children : Node?[]
+    <<internal>> count : int[]
+    <<internal>> InternalNode()
+    <<internal>> InternalNode(heightA:int, A:Node?[])
+    <<internal>> InternalNode(heightA:int, A:Node?[], start:int, len:int)
+    <<internal>> InternalNode(heightA:int, A:Node?[], C:int[], start:int, len:int)
+    <<internal>> <<override>> size : int <<get>>
+    <<internal>> LocateSubtreeAt(x:int, remain:int) : int
+    <<internal>> GetC0(i:int) : int
+    <<internal>> Highlight(at:int) : IEnumerable<string>
+}
+class Leaf {
+    <<internal>> data : T
+    <<internal>> <<override>> size : int <<get>>
+    <<internal>> Leaf(data:T)
+}
+enum DeleteAuxResult {
+    OK,
+    OK_REMOVED,
+    OK_NEED_REORG,
+    NOT_FOUND,
+}
+"BTree`1" +-- Node
+"BTree`1" +-- InternalNode
+Node <|-- InternalNode
+"BTree`1" +-- Leaf
+Node <|-- Leaf
+"BTree`1" +-- DeleteAuxResult
+@enduml

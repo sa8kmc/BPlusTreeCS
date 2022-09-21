@@ -44,7 +44,7 @@ partial class Program
     }
     public static void BenchmarkRoll(in int N)
     {
-        double timeB, timePancake;
+        double timeB, timePancake, timeCopy;
         var L = new List<int>();
         var X = new BTree<int>();
         var rnd = new Random();
@@ -91,12 +91,35 @@ partial class Program
         }
         sw.Stop();
         timePancake = sw.ElapsedTicks / (double)Stopwatch.Frequency;
+        sw.Restart();
+        for (int k = 0; k < N; k++)
+        {
+            switch (rnd.Next(10))
+            {
+                case > 6:
+                    if (L.Count != 0)
+                        L.RemoveAt(L.Count - 1);
+                    break;
+                case > 0:
+                    L.Add(k);
+                    break;
+                case 0:
+                    if (L.Count == 0) break;
+                    var depth = 1 + rnd.Next(0, L.Count);
+                    var count = rnd.Next(0, depth);
+                    L.RollCopy(depth, count);
+                    break;
+            }
+        }
+        sw.Stop();
+        timeCopy = sw.ElapsedTicks / (double)Stopwatch.Frequency;
         System.Console.WriteLine(
             string.Join(',', new long[] { N, BTree<int>.CAPACITY })
             + "," + string.Join(
                 ',', new string[] {
                     string.Format("{0:f3}", timeB),
                     string.Format("{0:f3}", timePancake),
+                    string.Format("{0:f3}", timeCopy),
                     }
                 )
             );
