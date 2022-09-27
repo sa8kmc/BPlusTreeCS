@@ -64,35 +64,6 @@ public static class Extend
     /// Xの末尾depth個を前(depth-count)個と後count個に分割し、この2組を入れ替える。
     /// </summary>
     /// <param name="X">[0]が前。</param>
-    /// <param name="depth">入替えの起こる範囲。</param>
-    /// <param name="count">入替えで前方に動かす個数。</param>
-    /// <typeparam name="T"></typeparam>
-    public static void RollCopy<T>(this List<T> X, int depth, int count)
-    {
-        var N = X.Count;
-        if (depth == 0 || depth > N) return;
-        count = Mod(count, depth);
-        if (depth - count < count)
-        {
-            //前方を取り出す
-            var Tmp = new T[depth - count];
-            X.CopyTo(N - depth, Tmp, 0, depth - count);
-            X.RemoveRange(N - depth, depth - count);
-            X.AddRange(Tmp);
-        }
-        else
-        {
-            //後方を取り出す
-            var Tmp = new T[count];
-            X.CopyTo(N - count, Tmp, 0, count);
-            X.RemoveRange(N - count, count);
-            X.InsertRange(N - depth, Tmp);
-        }
-    }
-    /// <summary>
-    /// Xの末尾depth個を前(depth-count)個と後count個に分割し、この2組を入れ替える。
-    /// </summary>
-    /// <param name="X">[0]が前。</param>
     /// <param name="Tmp">入替操作に用いる配列</param>
     /// <param name="depth">入替えの起こる範囲。</param>
     /// <param name="count">入替えで前方に動かす個数。</param>
@@ -106,7 +77,7 @@ public static class Extend
         {
             //前方を取り出す
             if (Tmp.Length < depth - count)
-                Tmp = new T[BitOperations.RoundUpToPowerOf2((uint)(depth - count))];
+                Array.Resize(ref Tmp, (int)BitOperations.RoundUpToPowerOf2((uint)(depth - count)));
             X.CopyTo(N - depth, Tmp, 0, depth - count);
             X.RemoveRange(N - depth, depth - count);
             X.AddRange(Tmp[0..(depth - count)]);
@@ -115,13 +86,12 @@ public static class Extend
         {
             //後方を取り出す
             if (Tmp.Length < count)
-                Tmp = new T[BitOperations.RoundUpToPowerOf2((uint)count)];
+                Array.Resize(ref Tmp, (int)BitOperations.RoundUpToPowerOf2((uint)count));
             X.CopyTo(N - count, Tmp, 0, count);
             X.RemoveRange(N - count, count);
-            X.InsertRange(N - depth, Tmp);
+            X.InsertRange(N - depth, Tmp[0..count]);
         }
     }
-
     #region BinarySearch
     public static int lowerBound<T>(this T[] X, T key) where T : IComparable<T>
     {

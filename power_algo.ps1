@@ -7,7 +7,7 @@ $testSrc = './Program.cs'
 $testNReg = 'var N = '
 $Algos = @('BTree', 'BTree', 'Pancake', 'Swap')
 $times = 0..4
-$resultPool = './Comparison1.csv'
+$resultPool = './Comparison.csv'
 if (Test-Path $resultPool) {
     Remove-Item $resultPool 
 }
