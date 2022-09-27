@@ -4,6 +4,7 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Text.RegularExpressions;
+using MathNet.Numerics;
 public static class Extend
 {
     public static int Ceil(this int a, int b) => (a + b - 1) / b;
@@ -62,7 +63,7 @@ public static class Extend
     /// <summary>
     /// Xの末尾depth個を前(depth-count)個と後count個に分割し、この2組を入れ替える。
     /// </summary>
-    /// <param name="X"></param>
+    /// <param name="X">[0]が前。</param>
     /// <param name="depth">入替えの起こる範囲。</param>
     /// <param name="count">入替えで前方に動かす個数。</param>
     /// <typeparam name="T"></typeparam>
@@ -88,6 +89,39 @@ public static class Extend
             X.InsertRange(N - depth, Tmp);
         }
     }
+    /// <summary>
+    /// Xの末尾depth個を前(depth-count)個と後count個に分割し、この2組を入れ替える。
+    /// </summary>
+    /// <param name="X">[0]が前。</param>
+    /// <param name="Tmp">入替操作に用いる配列</param>
+    /// <param name="depth">入替えの起こる範囲。</param>
+    /// <param name="count">入替えで前方に動かす個数。</param>
+    /// <typeparam name="T"></typeparam>
+    public static void RollCopy<T>(this List<T> X, ref T[] Tmp, int depth, int count)
+    {
+        var N = X.Count;
+        if (depth == 0 || depth > N) return;
+        count = Mod(count, depth);
+        if (depth - count < count)
+        {
+            //前方を取り出す
+            if (Tmp.Length < depth - count)
+                Tmp = new T[BitOperations.RoundUpToPowerOf2((uint)(depth - count))];
+            X.CopyTo(N - depth, Tmp, 0, depth - count);
+            X.RemoveRange(N - depth, depth - count);
+            X.AddRange(Tmp[0..(depth - count)]);
+        }
+        else
+        {
+            //後方を取り出す
+            if (Tmp.Length < count)
+                Tmp = new T[BitOperations.RoundUpToPowerOf2((uint)count)];
+            X.CopyTo(N - count, Tmp, 0, count);
+            X.RemoveRange(N - count, count);
+            X.InsertRange(N - depth, Tmp);
+        }
+    }
+
     #region BinarySearch
     public static int lowerBound<T>(this T[] X, T key) where T : IComparable<T>
     {

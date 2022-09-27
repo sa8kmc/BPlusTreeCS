@@ -3,3 +3,6 @@ obj/*
 *.dvi
 *.synctex.gz
 *.pdf
+*.csv
+*.png
+*.tikz

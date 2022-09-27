@@ -220,7 +220,7 @@ class BTree<T>
     /// 探索により指定された節を参照するフィールド
     /// </summary>
     /// <value></value>
-    private Leaf? currentLeaf { get; set; }
+    public Leaf? currentLeaf { get; private set; }
     /// <summary>
     /// 木全体の高さ
     /// </summary>

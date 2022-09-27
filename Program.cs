@@ -8,4 +8,4 @@ using System.Runtime.InteropServices;
 using System.Diagnostics;
 
 var N = 100000;
-Program.BenchmarkRoll(N);
+System.Console.Write(Program.BenchmarkSwap(N));

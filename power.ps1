@@ -1,6 +1,7 @@
 # 何をしたいのか
 # 木の階数パラメータによる性能の変化を、一定の要素数ごとに調べたい。
 # 
+chcp 65001 # UTF-8
 $rankSrc = './BTree.cs'
 $DeclareRank = 'int CAPACITY = '
 $caseSrc = './Program.cs'
