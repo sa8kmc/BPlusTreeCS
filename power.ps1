@@ -1,26 +1,27 @@
 # 何をしたいのか
 # 木の階数パラメータによる性能の変化を、一定の要素数ごとに調べたい。
 # 
-chcp 65001 # UTF-8
+$OutputEncoding = [System.Text.Encoding]::GetEncoding('utf-8') # with BOM
 $rankSrc = './BTree.cs'
 $DeclareRank = 'int CAPACITY = '
 $caseSrc = './Program.cs'
 $DeclareCase = 'var N = '
-$resultPool = './Comparison.csv'
+$resultPool = './Comparison2.csv'
 if (Test-Path $resultPool) {
     Remove-Item $resultPool 
 }
-Set-Content $resultPool -Encoding Unicode -Value ("N,capacity,samples,"`
+Set-Content $resultPool -Encoding UTF8 -Value ("N,capacity,samples,"`
         + "insertion Ave[ms],insertion unbiased SD[ms],deletion Ave[ms],deletion unbiased SD[ms]")
 for ($j = 6; $j -le 13; $j++) {
     for ($i = 2; $i -le 10; $i++) {
         $rank = [math]::pow(2, $i)
-        $case = [math]::Floor([math]::pow(10, $j / 2.0))
+        $N = [math]::Floor([math]::pow(10, $j / 2.0))
         (Get-Content $rankSrc -Encoding UTF8) -replace "${DeclareRank}.*", "${DeclareRank}${rank};" `
         | Set-Content $rankSrc -Encoding UTF8
-        (Get-Content $caseSrc -Encoding UTF8) -replace "${DeclareCase}.*", "${DeclareCase}${case};" `
+        (Get-Content $caseSrc -Encoding UTF8) -replace "${DeclareCase}.*", "${DeclareCase}${N};" `
         | Set-Content $caseSrc -Encoding UTF8
-        dotnet run -c Release >> $resultPool
+        $time = dotnet run -c Release
+        @($N, $rank, $time) -join ',' | Out-File $resultPool -Encoding UTF8 -Append
     }
 }
 (Get-Content $rankSrc -Encoding UTF8) -replace "${DeclareRank}.*", "${DeclareRank}128;" `

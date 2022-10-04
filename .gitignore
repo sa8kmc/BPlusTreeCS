@@ -6,3 +6,4 @@ obj/*
 *.csv
 *.png
 *.tikz
+*.tex

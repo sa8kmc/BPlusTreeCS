@@ -18,7 +18,7 @@ class BTree<T>
     /// <summary>
     /// B+木の階数
     /// </summary>
-    public static readonly int CAPACITY = 128;
+    public static readonly int CAPACITY = 4;
     #region NodeClassDefinition
     /// <summary>
     /// 内部節、葉、仮想節を総称した節の抽象クラス
@@ -998,13 +998,32 @@ class BTree<T>
     /// <param name="count"></param>
     internal void Roll(int depth, int count)
     {
-        if (depth == 0 || depth > size) return;
+        if (depth <= 1 || depth > size) return;
         count %= depth;
         if (count < 0) count += depth;
+        var singleton = depth <= HALF_CAPACITY;
+        if (singleton)
+        {
+            var L = (InternalNode)LastParent()!;
+            Extend.RollPancake(L.children, L.nc, depth, count);
+            return;
+        }
         var (Base, Effect) = SplitAdjust(root, this.size - depth);
         var (Float, Sink) = SplitAdjust(Effect, Effect!.size - count);
         var K = Merge(Sink, Float);
         root = Merge(Base, K);
+    }
+    private Node? LastParent()
+    {
+        if (root == null) return null;
+        var p = root as Node;
+        Node? gp = null;
+        while (p is InternalNode node)
+        {
+            gp = node;
+            p = node[node.nc - 1];
+        }
+        return gp;
     }
     #endregion
     #region Debug

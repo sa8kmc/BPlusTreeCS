@@ -17,7 +17,7 @@ eval plotter
 #------------------------------------------
 set terminal pngcairo size 640,480
 set grid
-source='Comparison.csv'
+source='Comparison1.csv'
 set output 'algorithm.png'
 set datafile separator ","
 every_term=4
@@ -27,15 +27,14 @@ set title 'operation time for algorithms'
 set ylabel 'operation time[sec] per operation'
 set xlabel '#operation[1]'
 set boxwidth 1
-array algoname[4]=['2-3-4 Tree','B+ Tree', 'Pancake', 'Naive Copy']
+array algoname[5]=['Red-Black Tree','2-3-4 Tree','B+ Tree', 'Reversal', 'Naive Copy']
 plotter = 'plot '
 i=3
-do for [j=1:4:1] {
-plotter=plotter.sprintf("source using 1:($%d/$1) with lp t '%s'", j+1, algoname[j])
-if (j!=4) {
-    plotter = plotter.', '
+do for [j=1:5:1] {
+plotter=plotter.sprintf("source using 1:($%d/$1) with lp t '%s', ", j+1, algoname[j])
 }
-}
+plotter = plotter."x/10**11 with lines lt -1 lw 1 dt (10,5) lc 'gray' t '{/Symbol Q}(N^2)', "
+plotter = plotter."log(x)/10**7 with lines lt -1 lw 1 dt (20,10) lc 'gray' t '{/Symbol Q}(N log(N))'"
+set key left top
 eval plotter
-set key right bottom
 

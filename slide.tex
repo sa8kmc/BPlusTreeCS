@@ -1,4 +1,4 @@
-\documentclass[10pt,draft]{beamer}
+\documentclass[10pt]{beamer}
 \usepackage{luatexja}
 \usepackage{amsmath,amssymb}
 \usepackage{bbm}
@@ -26,7 +26,7 @@
 \section{平衡探索木とは?}
 \begin{frame}
     \frametitle{2分探索木}
-    \begin{block}{2分木\cite[\S 6.3]{kondo:1998}}
+    \begin{block}{2分木}
         \begin{enumerate}
             \item \textbf{空}の木は2分木である.
             \item 次のいずれかを満足する節のみからなる木は、2分木である:
@@ -39,7 +39,7 @@
         \end{enumerate}
     \end{block}
     各節の左の子を根とする部分木を{\bf 左部分木}と呼ぶ。{\bf 右部分木}も同様。
-    \begin{block}{2分探索木\cite[\S 9]{kondo:1998}}
+    \begin{block}{2分探索木}
         各節に持たせたデータが次の関係を満たす2分木
 
         \textsl{任意の節$\tt x$について、左部分木の要素は節$\tt x$よりも小さく、
@@ -168,12 +168,65 @@
 
     \texttt{roll}コマンドのアルゴリズムで比較:
     \begin{itemize}
+        \item 赤黒木
         \item 平衡2分探索木(オーダー$4$のB+木を使用)
-        \item B+木(オーダー$4$超過)
+        \item B+木(オーダー$4$超過, 今回はオーダー32)
         \item 配列のreverse
         \item 配列のswap
     \end{itemize}
 \end{frame}
-\bibliographystyle{jplain}
-\bibliography{biblio}
+\begin{frame}
+    \frametitle{結果}
+
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.7\textwidth]{algorithm.png}
+        \caption{各アルゴリズムでの処理時間。
+            横軸が$N$個、縦軸が合計$\Theta(N)$時間を表す。}
+    \end{figure}
+
+\end{frame}
+\begin{frame}
+    \frametitle{\only<1>{結果}\only<2>{今後の課題}}
+
+    \begin{columns}
+        \begin{column}{0.4\textwidth}
+            \begin{figure}
+                \centering
+                \includegraphics[width=1.0\textwidth, clip, trim=300 0 0 0]{algorithm.png}
+                \caption{各アルゴリズムでの比較}
+            \end{figure}
+        \end{column}
+        \begin{column}{0.6\textwidth}
+            \only<1>{
+                \begin{itemize}
+                    \item 反転法、単純コピー法が予想通り$O(N^2)$。
+                    \item $B+$木が他の平衡木より定数倍速い。
+                    \item 平衡木法がいずれも$N>1\times {10}^6$で$\omega(N\log N)$に悪化。
+                          \begin{itemize}
+                              \item キャッシュミスが原因？
+                          \end{itemize}
+                    \item 平衡木が$N<3\times{10}^6$で配列の性能を超えられない。
+                          \begin{itemize}
+                              \item ノードのオブジェクト生成時間が定数倍のボトルネックになっている？
+                              \item より最適化が可能？
+                          \end{itemize}
+                \end{itemize}
+            }
+            \only<2>{
+                \begin{enumerate}
+                    \item 平衡木の実装を最適化、\textbf{定数倍}改善させる
+                    \item 赤黒木、B+木では末尾参照に$\Omega(\log N)$かかる。\par
+                          $\longrightarrow$\textbf{2-3 Finger Tree}の導入を検討
+                \end{enumerate}
+            }
+        \end{column}
+    \end{columns}
+\end{frame}
+% \begin{frame}[allowframebreaks]{Reference}
+%     \scriptsize
+%     \beamertemplatetextbibitems
+%     \bibliographystyle{jplain}
+%     \bibliography{biblio}
+% \end{frame}
 \end{document}
