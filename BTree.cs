@@ -8,6 +8,7 @@
 /// <typeparam name="T">格納するデータの型</typeparam>
 class BTree<T>
 {
+    //TODO:葉の情報は、オブジェクトにせずともその上のノードに作った配列に持てるのでは？
     #region MetaComment
     // コード内のコメントに用いる範囲記法
     //  a[i..j]={a[i],...,a[j-1]}
@@ -18,7 +19,7 @@ class BTree<T>
     /// <summary>
     /// B+木の階数
     /// </summary>
-    public static readonly int CAPACITY = 4;
+    public static readonly int CAPACITY = 32;
     #region NodeClassDefinition
     /// <summary>
     /// 内部節、葉、仮想節を総称した節の抽象クラス

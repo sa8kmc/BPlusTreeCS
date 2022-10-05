@@ -4,6 +4,4 @@ obj/*
 *.synctex.gz
 *.pdf
 *.csv
-*.png
 *.tikz
-*.tex

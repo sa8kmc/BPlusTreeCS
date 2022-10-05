@@ -10,9 +10,11 @@ $resultPool = './Comparison2.csv'
 if (Test-Path $resultPool) {
     Remove-Item $resultPool 
 }
-Set-Content $resultPool -Encoding UTF8 -Value ("N,capacity,samples,"`
-        + "insertion Ave[ms],insertion unbiased SD[ms],deletion Ave[ms],deletion unbiased SD[ms]")
-for ($j = 6; $j -le 13; $j++) {
+Set-Content $resultPool -Encoding UTF8 -Value ("N,capacity,operation time[sec]")
+$testSrc = './Program.cs'
+(Get-Content $testSrc -Encoding UTF8) -replace "Benchmark\w*", "BenchmarkBTree" `
+| Set-Content $testSrc -Encoding UTF8
+for ($j = 6; $j -le 14; $j++) {
     for ($i = 2; $i -le 10; $i++) {
         $rank = [math]::pow(2, $i)
         $N = [math]::Floor([math]::pow(10, $j / 2.0))
