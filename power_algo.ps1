@@ -12,7 +12,7 @@ if (Test-Path $resultPool) {
     Remove-Item $resultPool 
 }
 Set-Content $resultPool -Encoding UTF8 -Value "N, algorithm, operation time[ms]"
-for ($j = 6; $j -le 14; $j++) {
+for ($j = 6; $j -le 15; $j++) {
     $N = [math]::Floor([math]::pow(10, $j / 2.0))
     $times[0] = $N
     (Get-Content $testSrc -Encoding UTF8) -replace "${testNReg}.*", "${testNReg}${N};" `
@@ -33,9 +33,11 @@ for ($j = 6; $j -le 14; $j++) {
     }
     $times -join "," | Out-File $resultPool -Encoding UTF8 -Append
 }
-(Get-Content $capSrc -Encoding UTF8) -replace "${capDecReg}.*", "${capDecReg}128;" `
+(Get-Content $capSrc -Encoding UTF8) -replace "${capDecReg}.*", "${capDecReg}32;" `
 | Set-Content $capSrc -Encoding UTF8
 (Get-Content $testSrc -Encoding UTF8) -replace "${testNReg}.*", "${testNReg}100000;" `
+| Set-Content $testSrc -Encoding UTF8
+(Get-Content $testSrc -Encoding UTF8) -replace "Benchmark\w*", "BenchmarkBTree" `
 | Set-Content $testSrc -Encoding UTF8
 
 # 処理が終わったらスリープする
