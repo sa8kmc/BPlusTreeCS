@@ -15,7 +15,7 @@ if(i!=8){
     plotter = plotter.", "
 }
 }
-set key right bottom
+set key left bottom
 eval plotter
 #------------------------------------------
 set terminal pngcairo size 640,480
@@ -35,8 +35,8 @@ plotter = 'plot '
 do for [j=1:5:1] {
 plotter=plotter.sprintf("source using 1:($%d/$1) with lp t '%s', ", j+1, algoname[j])
 }
-plotter = plotter."x/10**12 with lines lt -1 lw 1 dt (10,5) lc 'gray60' t '{/Symbol Q}(N^2)', "
-plotter = plotter."log(x)/10**7 with lines lt -1 lw 1 dt (20,10) lc 'gray60' t '{/Symbol Q}(N log(N))'"
+plotter = plotter."x/10**12 with lines lt -1 lw 1 dt (10,5) lc 'gray60' t '{/Symbol Q}(N)', "
+plotter = plotter."log(x)/10**7 with lines lt -1 lw 1 dt (20,10) lc 'gray60' t '{/Symbol Q}(log(N))'"
 set key right bottom
 eval plotter
 #------------------------------------------
@@ -59,7 +59,7 @@ do for [i=1:2:1] {
 j=indices[i]
 plotter=plotter.sprintf("source using 1:($%d/$1) with lp t '%s' lc %d, ", j+1, algoname[j], j)
 }
-plotter = plotter."x/10**12 with lines lt -1 lw 1 dt (10,5) lc 'gray60' t '{/Symbol Q}(N^2)', "
-plotter = plotter."log(x)/10**7 with lines lt -1 lw 1 dt (20,10) lc 'gray60' t '{/Symbol Q}(N log(N))'"
+plotter = plotter."x/10**12 with lines lt -1 lw 1 dt (10,5) lc 'gray60' t '{/Symbol Q}(N)', "
+plotter = plotter."log(x)/10**7 with lines lt -1 lw 1 dt (20,10) lc 'gray60' t '{/Symbol Q}(log(N))'"
 set key right bottom
 eval plotter

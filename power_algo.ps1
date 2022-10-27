@@ -11,7 +11,7 @@ $resultPool = './Comparison1.csv'
 if (Test-Path $resultPool) {
     Remove-Item $resultPool 
 }
-Set-Content $resultPool -Encoding UTF8 -Value "N, algorithm, operation time[ms]"
+Set-Content $resultPool -Encoding UTF8 -Value "N, algorithm, operation time[s]"
 for ($j = 6; $j -le 15; $j++) {
     $N = [math]::Floor([math]::pow(10, $j / 2.0))
     $times[0] = $N
@@ -21,7 +21,7 @@ for ($j = 6; $j -le 15; $j++) {
         $algoRepStr = $Algos[$i]
         if ($i -ge 1 -and $i -le 2) {
             # B-Tree
-            $rank = [math]::pow(2, 3 * ($i - 1) + 2)
+            $rank = [math]::pow(2, 4 * ($i - 1) + 2)
             $algoRepStr = $algoRepStr + $rank
             (Get-Content $capSrc -Encoding UTF8) -replace "${capDecReg}.*", "${capDecReg}${rank};" `
             | Set-Content $capSrc -Encoding UTF8

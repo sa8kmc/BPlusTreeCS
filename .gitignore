@@ -1,7 +1,7 @@
 bin/*
 obj/*
+.vs/*
 *.dvi
 *.synctex.gz
 *.pdf
-*.csv
 *.tikz

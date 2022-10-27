@@ -1,0 +1,73 @@
+\documentclass[tikz]{standalone}
+\usepackage{luatexja}
+\usepackage{tikz}
+\newcommand{\pha}{$\emptyset$}
+\usetikzlibrary{shapes}
+\begin{document}
+\begin{tikzpicture}
+    \tikzstyle{bplus}=[rectangle split, rectangle split horizontal,rectangle split ignore empty parts,
+    rectangle split parts=5, draw]
+    \tikzstyle{every node}=[bplus]
+    \tikzstyle{level 1}=[sibling distance=90mm]
+    \tikzstyle{level 2}=[sibling distance=30mm]
+    \tikzstyle{level 3}=[sibling distance=7mm]
+    \node {11 \nodepart{two} 19 \nodepart{three} $\emptyset$ \nodepart{four} $\emptyset$} [->]
+    child {node {4 \nodepart{two} 8 \nodepart{three} 11 \nodepart{four} $\emptyset$}
+            child {node {1 \nodepart{two} 2 \nodepart{three} 3 \nodepart{four} 4}
+                    child {node[draw=red] {色}}
+                    child {node[draw=red] {は}}
+                    child {node[draw=red] {匂}}
+                    child {node[draw=red] {へ}}
+                }
+            child {node {1 \nodepart{two} 2 \nodepart{three} 3 \nodepart{four} 4}
+                    child {node[draw=red] {ど}}
+                    child {node[draw=red] {散}}
+                    child {node[draw=red] {り}}
+                    child {node[draw=red] {ぬ}}
+                }
+            child {node {1 \nodepart{two} 2 \nodepart{three} 3 \nodepart{four} $\emptyset$}
+                    child {node[draw=red] {る}}
+                    child {node[draw=red] {を}}
+                    child {node[draw=red] {我}}
+                }
+        }
+    child {node {3 \nodepart{two} 6 \nodepart{three} 8 \nodepart{four} $\emptyset$}
+            child {node {1 \nodepart{two} 2 \nodepart{three} 3 \nodepart{four} $\emptyset$}
+                    child {node[draw=red] {が}}
+                    child {node[draw=red] {世}}
+                    child {node[draw=red] {誰}}
+                }
+            child {node {1 \nodepart{two} 2 \nodepart{three} 3 \nodepart{four} $\emptyset$}
+                    child {node[draw=red] {ぞ}}
+                    child {node[draw=red] {常}}
+                    child {node[draw=red] {な}}
+                }
+            child {node {1 \nodepart{two} 2 \nodepart{three} $\emptyset$ \nodepart{four} $\emptyset$}
+                    child {node[draw=red] {ら}}
+                    child {node[draw=red] {む}}
+                }
+        }
+    ;
+\end{tikzpicture}
+% 列としてのB+木(capacity=4)。枝のキーは部分木が持つ葉の数によって決まる。
+\begin{tikzpicture}
+    \tikzstyle{bplus}=[rectangle split, rectangle split horizontal,rectangle split ignore empty parts,
+    rectangle split parts=5, draw]
+    \tikzstyle{every node}=[bplus]
+    \tikzstyle{level 1}=[sibling distance=90mm]
+    \tikzstyle{level 2}=[sibling distance=30mm]
+    \tikzstyle{level 3}=[sibling distance=7mm]
+    \node {11 \nodepart{two} 19 \nodepart{three} $\emptyset$ \nodepart{four} $\emptyset$} [->]
+    child {node {4 \nodepart{two} 8 \nodepart{three} 11 \nodepart{four} $\emptyset$}
+            child {node[draw=red] {色 \nodepart{two} は \nodepart{three} 匂 \nodepart{four} へ}}
+            child {node[draw=red] {ど \nodepart{two} 散 \nodepart{three} り \nodepart{four} ぬ}}
+            child {node[draw=red] {る \nodepart{two} を \nodepart{three} 我 \nodepart{four} \pha }}
+        }
+    child {node {3 \nodepart{two} 6 \nodepart{three} 8 \nodepart{four} $\emptyset$}
+            child {node[draw=red] {が \nodepart{two} 世 \nodepart{three} 誰 \nodepart{four} \pha }}
+            child {node[draw=red] {ぞ \nodepart{two} 常 \nodepart{three} な \nodepart{four} \pha }}
+            child {node[draw=red] {ら \nodepart{two} む \nodepart{three} \pha  \nodepart{four} \pha }}
+        }
+    ;
+\end{tikzpicture}
+\end{document}

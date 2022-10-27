@@ -8,4 +8,5 @@ using System.Runtime.InteropServices;
 using System.Diagnostics;
 
 var N = 100000;
-System.Console.Write(Program.BenchmarkBTree(N));
+var seed = 1;
+System.Console.Write(Program.BenchmarkBTree(N, seed));

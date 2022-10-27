@@ -7,11 +7,11 @@ using MathNet.Numerics.Random;
 partial class Program
 {
     const char separator = '\t';
-    public static double BenchmarkBTree(in int N)
+    public static double BenchmarkBTree(in int N, int seed)
     {
         var CU = new ContinuousUniform(0.0, 1.0);
         var X = new BTree<int>();
-        var rnd = new Random();
+        var rnd = new Random(seed);
         var sw = new Stopwatch();
         sw.Start();
         for (int k = 0; k < N; k++)
@@ -35,11 +35,11 @@ partial class Program
         sw.Stop();
         return sw.ElapsedTicks / (double)Stopwatch.Frequency;
     }
-    public static double BenchmarkStar(in int N)
+    public static double BenchmarkStar(in int N, int seed)
     {
         var CU = new ContinuousUniform(0.0, 1.0);
         var L = new List<int>();
-        var rnd = new Random();
+        var rnd = new Random(seed);
         var sw = new Stopwatch();
         sw.Start();
         for (int k = 0; k < N; k++)
@@ -65,11 +65,11 @@ partial class Program
         sw.Stop();
         return sw.ElapsedTicks / (double)Stopwatch.Frequency;
     }
-    public static double BenchmarkPancake(in int N)
+    public static double BenchmarkPancake(in int N, int seed)
     {
         var CU = new ContinuousUniform(0.0, 1.0);
         var A = new int[1024];
-        var rnd = new Random();
+        var rnd = new Random(seed);
         var sw = new Stopwatch();
         sw.Start();
         var end = 0;
@@ -98,11 +98,11 @@ partial class Program
         sw.Stop();
         return sw.ElapsedTicks / (double)Stopwatch.Frequency;
     }
-    public static double BenchmarkSwap(in int N)
+    public static double BenchmarkSwap(in int N, int seed)
     {
         var CU = new ContinuousUniform(0.0, 1.0);
         var A = new int[1024];
-        var rnd = new Random();
+        var rnd = new Random(seed);
         var sw = new Stopwatch();
         var Tmp = new int[1024];
         sw.Start();
@@ -135,11 +135,11 @@ partial class Program
         sw.Stop();
         return sw.ElapsedTicks / (double)Stopwatch.Frequency;
     }
-    public static double BenchmarkRBT(in int N)
+    public static double BenchmarkRBT(in int N, int seed)
     {
         var CU = new ContinuousUniform(0.0, 1.0);
         var X = new RBT<int>();
-        var rnd = new Random();
+        var rnd = new Random(seed);
         var sw = new Stopwatch();
         sw.Start();
         for (int k = 0; k < N; k++)

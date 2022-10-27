@@ -10,7 +10,7 @@ $resultPool = './Comparison2.csv'
 if (Test-Path $resultPool) {
     Remove-Item $resultPool 
 }
-Set-Content $resultPool -Encoding UTF8 -Value ("N,capacity,operation time[sec]")
+Set-Content $resultPool -Encoding UTF8 -Value ("N, capacity, operation time[s]")
 $testSrc = './Program.cs'
 (Get-Content $testSrc -Encoding UTF8) -replace "Benchmark\w*", "BenchmarkBTree" `
 | Set-Content $testSrc -Encoding UTF8

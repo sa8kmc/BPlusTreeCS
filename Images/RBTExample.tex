@@ -1,0 +1,34 @@
+\documentclass[tikz]{standalone}
+\usepackage{luatexja}
+\usepackage{tikz}
+\usetikzlibrary{arrows}
+\usetikzlibrary{graphdrawing}
+\usetikzlibrary{graphs}
+\usegdlibrary{trees}
+\begin{document}
+\begin{tikzpicture}[>=stealth, every node/.style={rectangle, draw, minimum size=0.25cm},
+        rouge/.style={draw=red}, rouge/.default=,
+        leaf/.style={circle, draw}, leaf/.default=,
+    ]
+    \graph [tree layout, grow=down, fresh nodes, level distance=0.2in, sibling distance=0.2in]
+    {
+    40->{
+    28->{
+    23->{18[leaf],23[leaf]},
+    32->{
+    28[leaf],
+    34[rouge]->{32[leaf],34[leaf]}
+    }},
+    77->{
+    51[rouge]->{
+    46->{40[leaf],46[leaf]},
+    52->{
+    51[leaf],
+    71[rouge]->{52[leaf],71[leaf]}
+    }},
+    85->{
+    81[rouge]->{77[leaf],81[leaf]},
+    86[rouge]->{85[leaf],86[leaf]}
+    }}}};
+\end{tikzpicture}
+\end{document}
